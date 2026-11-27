@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>B100M play stats</title>
+<meta name="description" content="How many people play B100M, which modes, for how long and where in the world. Totals only, never a name or an id.">
+<meta name="theme-color" content="#05060c">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="../index.icon.png">
+<!-- Published at b100mgame.com/stats/ by tools/publish_web.sh, which writes config.js (the Worker's address) from
+     godot/online.json. Local test: open with ?api=http://127.0.0.1:8787 while `npm run dev` runs in server/.
+     ?demo=1 shows example numbers (clearly marked) for previews and screenshots; it never calls the Worker.
+     ?still=1 shows everything grown (screenshots), like reduced motion. ?lang=xx checks one language.
+     Same page as the game's Play stats (godot/ui/stats_view.gd): kicker, hero row, Into the Machine as a vine of
+     five nodes, Duel as five level cards, Blackout and One Song as cards, the world of flowers, devices.
+     The world map's data comes from tools/world_seeds.py (Natural Earth, public domain). -->
+<script src="config.js"></script>
+<style>
+@font-face { font-family: "Urbanist"; src: url("urbanist.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+:root {
+  /* One deliberate dark look (the game's night garden). Same tokens as godot/ui/ui_style.gd. */
+  --bg: #05060c; --bg2: #0a0918; --ink: #fff; --text: #e0ebff; --rest: rgba(224, 235, 255, .72); --dim: #a3aed0; --faint: #6c7699;
+  --leaf: #59ffbf; --card: rgba(255, 255, 255, .03); --cardb: rgba(255, 255, 255, .06);
+  font-size: clamp(16px, calc(.37vw + 11.6px), 21px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  margin: 0; min-height: 100vh; overflow-x: hidden;
+  font-family: "Urbanist", system-ui, sans-serif; font-weight: 500; line-height: 1.45; letter-spacing: .01em;
+  background:
+    radial-gradient(60rem 36rem at 14% -10%, rgba(40, 70, 90, .35), transparent 62%),
+    radial-gradient(50rem 30rem at 92% 0%, rgba(30, 50, 100, .3), transparent 60%),
+    linear-gradient(180deg, transparent 70%, rgba(20, 70, 50, .22)),
+    var(--bg);
+  background-attachment: fixed;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+a { color: inherit; text-decoration: none; }
+.wrap { width: min(68rem, 100% - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right)); margin: 0 auto; }
+.skip { position: absolute; left: 1rem; top: -4rem; z-index: 50; color: var(--ink); background: var(--bg2); padding: .5rem .8rem; border-radius: 1rem; }
+.skip:focus { top: 1rem; }
+/* Focus is a soft glow, never an outline or an underline. */
+:focus-visible { outline: none; box-shadow: 0 0 0 .15rem rgba(89, 255, 191, .18), 0 0 1.2rem .3rem rgba(89, 255, 191, .28); border-radius: .8rem; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+ul, ol { list-style: none; margin: 0; padding: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Tabular figures: the font's digits differ in width, so each sits in its own cell. */
+.tn { white-space: nowrap; }
+.tn i { font-style: normal; display: inline-block; width: .6em; text-align: center; }
+
+/* The caps tag: letter-spaced caps, 600 (the game's label). */
+.lab { font-size: .82rem; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--dim); line-height: 1.3; }
+
+/* Header */
+.top { text-align: center; padding: calc(1.2rem + env(safe-area-inset-top)) 0 0; }
+.brand { display: inline-block; font-size: .82rem; font-weight: 700; letter-spacing: .3em; color: var(--rest); padding: .4rem .8rem; margin-left: .3em; }
+.brand:hover { color: var(--ink); }
+h1 { margin: 2.2rem 0 0; font-size: clamp(2.2rem, 5vw, 2.9rem); font-weight: 500; letter-spacing: 0; line-height: 1.1; color: #f2f4ff; text-shadow: 0 0 1.2rem rgba(200, 210, 255, .35); }
+.kick { margin: 1.4rem 0 0; display: flex; justify-content: center; align-items: baseline; gap: .8em; flex-wrap: wrap; }
+.kick i { font-style: normal; opacity: .6; }
+.demo { display: inline-block; margin-top: 1rem; color: #ffe9ad; background: rgba(255, 210, 90, .12); border: 1px solid rgba(255, 210, 90, .55); padding: .25rem .9rem; border-radius: 1rem; font-size: .85rem; font-weight: 600; box-shadow: 0 0 1.2rem rgba(255, 210, 90, .18); }
+.stamp { margin: .8rem 0 0; font-size: .82rem; color: var(--faint); min-height: 1.2em; }
+
+main { display: block; padding-top: 2rem; }
+main:focus { outline: none; }
+
+/* Sections: a name, what it counts beside it. No rules, no flourishes. */
+.sec { margin-top: 3.4rem; }
+.sh { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem 1rem; margin-bottom: 1.1rem; }
+.sh h2 { margin: 0; font-size: 1.4rem; font-weight: 600; letter-spacing: 0; line-height: 1.2; color: var(--ink); }
+.sh .cap { margin: 0; color: var(--dim); font-size: .92rem; font-weight: 500; }
+.note { text-align: center; color: var(--dim); font-size: 1.05rem; margin: 0 auto; max-width: 40rem; text-wrap: balance; }
+.card { background: var(--card); border: 1px solid var(--cardb); border-radius: 1rem; }
+
+/* Hero row: four big numbers over caps labels. */
+.hero { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.hero li { position: relative; overflow: hidden; text-align: center; padding: 1.15rem .5rem 1.05rem; border-radius: 1rem; }
+.hero li::before { content: ""; position: absolute; left: 50%; top: 1.6rem; width: 11rem; height: 7rem; transform: translate(-50%, -50%); background: radial-gradient(closest-side, rgba(var(--c), .16), transparent); pointer-events: none; }
+.hero b { position: relative; display: block; font-size: clamp(2rem, 3.6vw, 2.9rem); font-weight: 600; line-height: 1.1; color: var(--ink); }
+.hero .lab { position: relative; display: block; margin-top: .5rem; }
+
+/* Into the Machine: five nodes on a vine that glow by clear count. */
+.machine { position: relative; }
+.rungs { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); text-align: center; }
+.rung { position: relative; padding: 0 .3rem; }
+.node { position: relative; display: block; width: 2.1rem; height: 2.1rem; margin: 0 auto; border-radius: 50%; border: 2px solid rgba(var(--c), .45); z-index: 1; }
+.rung.lit .node { border-color: rgb(var(--c)); background: rgba(var(--c), .25);
+  box-shadow: 0 0 calc(.8rem + var(--f) * 1.6rem) rgba(var(--c), calc(.5 + var(--f) * .3)), 0 0 calc(1.6rem + var(--f) * 3.4rem) rgba(var(--c), calc(.2 + var(--f) * .12)); }
+.rung.lit .node::after { content: ""; position: absolute; inset: 32%; border-radius: 50%; background: rgba(255, 255, 255, .88); }
+.rung .k { display: block; margin-top: .85rem; }
+.rung .nm { display: block; font-size: 1.02rem; color: var(--text); line-height: 1.25; text-wrap: balance; }
+.rung .ct { display: block; margin-top: .55rem; font-size: 1.45rem; font-weight: 600; color: var(--ink); line-height: 1.2; }
+.rung:not(.lit) .k, .rung:not(.lit) .nm { opacity: .6; }
+.rung:not(.lit) .ct { font-size: 1rem; font-weight: 500; color: var(--dim); opacity: .6; margin-top: .75rem; }
+.mv { position: absolute; left: 0; width: 100%; overflow: visible; pointer-events: none; }
+.mv.h { top: -.15rem; height: 2.4rem; }
+.mv.v { display: none; }
+
+/* Cards: Duel levels, Blackout and One Song, devices. */
+.cards { display: grid; gap: .8rem; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+.cards > li { position: relative; overflow: hidden; padding: 1rem; border-radius: .9rem; }
+.duel { --cols: 5; }
+.duel .nm { display: block; font-size: 1.08rem; font-weight: 500; color: var(--ink); margin-top: .15rem; }
+.track { height: .4rem; margin: .8rem 0 .7rem; border-radius: .3rem; background: rgba(255, 255, 255, .08); }
+.fill { display: block; height: 100%; border-radius: .3rem; background: rgb(var(--c)); box-shadow: 0 0 .8rem rgba(var(--c), .55); transform-origin: left center; }
+.cards .sm { display: block; color: #b5bedc; font-size: .88rem; line-height: 1.35; }
+.stat { --cols: 4; }
+.stat > li::before, .songs > li::before { content: ""; position: absolute; left: -1rem; top: 1rem; width: 8rem; height: 6rem; background: radial-gradient(closest-side, rgba(var(--c), .14), transparent); pointer-events: none; }
+.stat .lab, .stat b, .stat .sm, .songs .lab, .songs b, .songs .sm { position: relative; }
+.stat b, .songs b { display: block; margin: .35rem 0 .15rem; font-size: 1.9rem; font-weight: 600; line-height: 1.2; color: var(--ink); }
+.songs { --cols: 2; }
+
+/* An empty mode: one invitation row with its PLAY action, never zeros. */
+.invite { display: flex; align-items: center; gap: 1rem; padding: 1.05rem 1.2rem; border-radius: .9rem; background: rgba(255, 255, 255, .02); border: 1px solid rgba(var(--c), .42); }
+.invite .ring { flex: none; width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 2px solid rgb(var(--c)); box-shadow: 0 0 1rem rgba(var(--c), .5); }
+.invite .it { flex: 1; min-width: 0; }
+.invite .it b { display: block; font-size: 1.12rem; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.invite .it span { color: var(--dim); font-size: .95rem; }
+.pill { flex: none; display: inline-block; padding: .55rem 1.2rem; border-radius: 2rem; border: 1px solid rgba(var(--c), .6); background: rgba(var(--c), .14); color: var(--ink); font-size: .82rem; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; text-align: center; line-height: 1.3; transition: background .2s, box-shadow .2s; }
+.pill:hover { background: rgba(var(--c), .26); box-shadow: 0 0 1.2rem rgba(var(--c), .35); }
+
+/* World */
+.mapbox { position: relative; width: 100%; }
+.mapbox canvas, .mapbox svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mapbox svg { overflow: visible; }
+.mapbox .fl { cursor: pointer; }
+.places-list { margin-top: 1.4rem; columns: 2 20rem; column-gap: 3rem; }
+.places-list li { display: flex; align-items: center; gap: .7rem; padding: .34rem .4rem; break-inside: avoid; border-radius: .8rem; font-size: 1rem; cursor: default; }
+.places-list li:hover, .places-list li:focus-visible, .places-list li.on { background: radial-gradient(closest-side, rgba(255, 255, 255, .06), transparent); color: #fff; }
+.places-list li .rk { width: 1.6rem; color: var(--faint); font-size: .8rem; text-align: right; }
+.places-list li .dot { flex: none; width: .7rem; height: .7rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 .55rem var(--c); opacity: var(--a, 1); }
+.places-list li .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.places-list li .ct { color: var(--c); font-weight: 600; }
+.pill.quiet { --c: 89, 255, 191; display: block; margin: 1.2rem auto 0; }
+
+/* Devices */
+.dev { --cols: 3; }
+.dev li { display: grid; grid-template-columns: 2rem 1fr; column-gap: .8rem; align-items: center; }
+.dev li svg.gl { width: 2rem; height: 2rem; overflow: visible; grid-row: span 2; }
+.dev .nm { font-size: 1.05rem; font-weight: 600; color: var(--c); }
+.dev b { font-size: 1.6rem; font-weight: 600; line-height: 1.2; color: var(--ink); }
+.dev .track, .dev .sm { grid-column: 1 / 3; }
+.dev .track { margin: .7rem 0 .55rem; }
+.vers { margin-top: 1.3rem; text-align: center; color: var(--rest); font-size: .92rem; }
+.vers b { color: var(--ink); font-weight: 600; margin-left: .35rem; }
+.vers span + span::before { content: "·"; margin: 0 .7rem; opacity: .6; }
+
+/* States */
+.state { text-align: center; padding: 4rem 1rem 5rem; }
+.state svg { width: 4.6rem; height: 4.6rem; overflow: visible; display: block; margin: 0 auto 1.2rem; }
+.state p { margin: .3rem auto; font-size: 1.2rem; max-width: 30rem; text-wrap: balance; color: var(--ink); }
+.state p + p { color: var(--dim); font-size: 1rem; }
+.state .pill { margin-top: 1.4rem; --c: 89, 255, 191; }
+
+/* Tooltip: words on a soft shade, no box. */
+.tip { position: fixed; z-index: 40; pointer-events: none; max-width: 16rem; padding: .35rem .7rem; border-radius: 1rem; background: rgba(4, 4, 12, .9); box-shadow: 0 0 1.4rem .9rem rgba(4, 4, 12, .9); font-size: .88rem; }
+.tip b { display: block; font-size: 1rem; color: var(--c, #fff); }
+.tip span { color: var(--dim); }
+
+footer { text-align: center; color: var(--faint); font-size: .85rem; padding: 3.6rem 0 3rem; }
+footer p { margin: .5rem auto; max-width: 40rem; text-wrap: balance; }
+footer .pill { --c: 89, 255, 191; margin: 0 0 1.2rem; font-size: .9rem; padding: .7rem 1.6rem; }
+
+/* Motion: everything grows in once; nothing moves under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html.still * { animation: none !important; }
+  .pop { transform-box: fill-box; transform-origin: center; animation: pop .9s cubic-bezier(.3, 1.4, .4, 1) both; animation-delay: var(--d, 0s); }
+  @keyframes pop { from { transform: scale(0); opacity: 0; } }
+  .node { animation: nodein .8s cubic-bezier(.3, 1.4, .4, 1) both; animation-delay: var(--d, 0s); }
+  @keyframes nodein { from { transform: scale(0); } }
+  .mv.h { animation: wipeh 1.3s cubic-bezier(.3, .7, .2, 1) both; }
+  .mv.v { animation: wipev 1.3s cubic-bezier(.3, .7, .2, 1) both; }
+  @keyframes wipeh { from { clip-path: inset(-1rem 100% -1rem 0); } to { clip-path: inset(-1rem -1rem -1rem 0); } }
+  @keyframes wipev { from { clip-path: inset(0 -1rem 100% -1rem); } to { clip-path: inset(0 -1rem 0 -1rem); } }
+  .fill { animation: grow 1.1s cubic-bezier(.3, .7, .2, 1) both; animation-delay: var(--d, 0s); }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .pulse { transform-box: fill-box; transform-origin: center; animation: pulse 2.6s ease-in-out infinite; animation-delay: var(--d, 0s); }
+  @keyframes pulse { 50% { transform: scale(1.22); opacity: .75; } }
+  .breathe { animation: breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .45; } }
+}
+
+@media (max-width: 900px) {
+  .duel { --cols: 3; }
+  .dev { --cols: 2; }
+}
+@media (max-width: 700px) {
+  .stat { --cols: 2; }
+}
+@media (max-width: 640px) {
+  .sec { margin-top: 2.6rem; }
+  .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .hero li { padding: 1rem .3rem .9rem; }
+  .hero b { font-size: 2.1rem; }
+  .duel { --cols: 2; gap: .6rem; }
+  .duel > li:last-child { grid-column: 1 / -1; }
+  .dev { --cols: 1; }
+  .stat { gap: .6rem; }
+  .songs { gap: .6rem; }
+  .cards > li { padding: .85rem; }
+  .stat b { font-size: 1.6rem; }
+  /* The vine climbs: nodes down the left, the layer in the middle, its count at the right. */
+  .rungs { grid-template-columns: 1fr; grid-auto-rows: 4.4rem; text-align: left; }
+  .rung { display: grid; grid-template-columns: 2.1rem 1fr auto; grid-template-rows: auto auto; column-gap: 1rem; align-items: center; align-content: center; padding: 0; }
+  .node { grid-row: 1 / 3; margin: 0; }
+  .rung .k { grid-column: 2; grid-row: 1; margin: 0; align-self: end; }
+  .rung .nm { grid-column: 2; grid-row: 2; align-self: start; }
+  .rung .ct, .rung:not(.lit) .ct { grid-column: 3; grid-row: 1 / 3; margin: 0; }
+  .mv.h { display: none; }
+  .mv.v { display: block; top: 0; width: 2.1rem; height: 100%; }
+  .invite { flex-wrap: wrap; }
+  .invite .it { flex: 1 1 10rem; }
+  .invite .pill { flex: 1 1 100%; }
+  .places-list { margin-top: 1rem; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Skip to the stats</a>
+<header class="top wrap">
+  <a class="brand" href="https://b100mgame.com/" aria-label="B100M">B100M</a>
+  <h1 data-i18n="logoSmall">Play stats</h1>
+  <p class="kick lab" id="kick"><span id="k1">Every garden</span><i aria-hidden="true">·</i><span id="k2">Last 30 days</span></p>
+  <div id="demo" hidden><span class="demo" data-i18n="demo">Example numbers for a preview · not live</span></div>
+  <p class="stamp" id="stamp"></p>
+</header>
+<main id="main" class="wrap" tabindex="-1">
+  <div id="state" class="state" role="status" aria-live="polite"></div>
+  <div id="stats" hidden></div>
+</main>
+<footer class="wrap">
+  <a class="pill" href="https://b100mgame.com/" data-i18n="play">Play B100M</a>
+  <p data-i18n="foot1">Totals only: never a name, an id or an IP address. Counted from players who leave “Share my scores online” on. A country with fewer than three players shows as “a few”. Days are Pacific time; the numbers refresh every few minutes.</p>
+  <p data-i18n="foot2">World map from Natural Earth. © 2026 R3Z Games LLC</p>
+  <p><a href="mailto:support@r3zgames.com">support@r3zgames.com</a></p>
+</footer>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<script>
+(function () {
+  'use strict';
+  /*WORLD{*/const WORLD = {step: 2.0, lon0: -180.0, lat0: 84.0, cols: 180, rows: 71,
+  land: ["0000000000007fe01ffe0000000000000000000000000","00000000003fffffffffe0000000670000c0000000000","00000000077fffffffff8001fe000000007c000000000","00000007e17fe3ffffff000068000030000f800000000","00000005f8afc007ffff80000000038007ffe001c8000","0000001ffbf7f007fffe000000000c0c7fffffc0c0000","803c0009feb7ff03fffe000007800c1fffffffffffc00","01fffffffefb9f03fffc00007ff80ffffffffffffffff","f9ffffffffff87e1ff8000007ffefffffffffffffffff","73ffffffffff1fc1fc03e001ffeffffffffffffffffff","01fffffffff993c0fc008007fffffffffffffffffffff","03ffffffffe03e007000000fefffffffffffffffff7f0","007e0fffffe01f6000000007e7fffffffffffffffe300","003807fffff81fe000000383cffffffffffffffe00e00","004001ffffffbff8000003c3affffffffffffffe00e00","000001ffffffbffc00000fcfffffffffffffffff81800","0000003ffffffffc000001ffffffffffffffffffc0800","0000003fffffffce000001ffffffffffffffffffc0000","0000000fffffffc30000007fffffffffffffffff40000","0000001fffffffe00000007fffaf9ffffffffffc80000","0000000ffffffe00000007fdbf03cffffffffffce0000","0000001ffffffc00000007e2dfffcfffffffffe100000","0000000ffffff800000007c22dffe7fffffffcc080000","0000000ffffff000000007be89fffffffffffec300000","00000007fffff000000001ff000ffffffffffc6f00000","00000003ffffc000000007ff881ffffffffffc3800000","00000000ffffc000000007ffeffffffffffffe0000000","00000000ffd8800000000fffffffdffffffffe0000000","000000007fc0400000001fffffefeffffffffc0000000","000000005f80000000003fffffeff5fffffff80000000","000000000780c00000003ffffff7ff0ffffffa0000000","00000000078c300000007ffffff7fe0ff9ff800000000","0000000003ec070000003ffffffbfe03f87ec00000000","0000000001fc000000007ffffffbf803e0fe060000000","00000000001f800000007ffffffff001c01f820000000","000000000007000000007fffffff8001c03f030000000","0000000000010fa000003fffffff7000c017818000000","000000000001ffe000001fffffffe000c032018000000","0000000000001ff800000fffffffe0002018098000000","0000000000001fff0000078fffffc0000068180000000","0000000000001fff80000001ffffc000003c380000000","0000000000003fff80000003ffff0000001cfb4000000","0000000000007fffe0000003fffe0000000e7b1800000","0000000000007ffffc000003fffc0000000e762f80000","0000000000007fffff000000fffc000000060303e4000","0000000000007fffff000000fff800000003c003f0000","0000000000003fffff800000fffc000000000e80d8000","0000000000003ffffe000000fffc00000000000000000","0000000000001ffffe000000fffe20000000001e40000","0000000000001ffffc000001fffc6000000000fcc0000","00000000000007fffe000000fffce000000001ffe0001","00000000000003fffc000001fff1c000000003ffe0000","00000000000001fffc0000007ff0e00000000ffff8080","00000000000003fff8000000ffe1c00000003ffff8000","00000000000003ffc00000007ff0c00000001ffffe000","00000000000003ffc00000007fc0000000003ffffc000","00000000000003ffc00000003fc0000000001ffffe000","00000000000007ff000000003f80000000001ffffc000","00000000000003ff000000001f00000000000f87fc000","00000000000007fe000000001000000000001803f8008","00000000000007fc000000000000000000000000f8004","00000000000007f00000000000000000000000006000e","00000000000007e00000000000000000000000003000c","0000000000000f8000000000000000000000000030030","000000000000078000000000000000000000000000070","0000000000000f8000000000000000000000000000040","0000000000000f8000000000000000000000000000000","0000000000000e0000000000000000000000000000000","000000000000070000000000000000000000000000000","000000000000030000000000000000000000000000000","000000000000000000000000000000000000000000000"],
+  points: {AD:[1.5,42.5],AE:[54.5,23.5],AF:[66.5,34.2],AG:[-61.8,17.4],AI:[-63.0,18.2],AL:[20.1,40.7],AM:[44.8,40.5],AO:[18.0,-12.2],AQ:[35.9,-79.8],AR:[-64.2,-33.5],AS:[-170.7,-14.3],AT:[14.1,47.5],AU:[123.6,-12.4],AW:[-70.0,12.5],AX:[19.9,60.2],AZ:[47.2,40.4],BA:[18.1,44.1],BB:[-59.6,13.2],BD:[89.7,24.2],BE:[4.8,50.8],BF:[-1.4,12.7],BG:[25.2,42.5],BH:[50.6,26.1],BI:[29.9,-3.3],BJ:[2.4,10.3],BL:[-62.8,17.9],BM:[-64.8,32.3],BN:[114.6,4.4],BO:[-64.6,-16.7],BQ:[-68.26,12.18],BR:[-49.6,-12.1],BS:[-77.1,26.4],BT:[90.0,27.5],BV:[3.41,-54.42],BW:[24.2,-22.1],BY:[28.4,53.8],BZ:[-88.7,17.2],CA:[-101.9,60.3],CC:[96.87,-12.16],CD:[23.5,-1.9],CF:[20.9,7.0],CG:[15.9,0.1],CH:[7.5,46.7],CI:[-5.6,7.5],CK:[-159.8,-21.2],CL:[-72.3,-38.2],CM:[12.5,4.6],CN:[106.3,32.5],CO:[-73.2,3.4],CR:[-84.1,10.1],CU:[-78.0,21.3],CV:[-23.6,15.1],CW:[-68.9,12.1],CX:[105.69,-10.45],CY:[33.1,34.9],CZ:[15.4,49.9],DE:[9.7,51.0],DJ:[42.5,12.0],DK:[9.0,56.0],DM:[-61.3,15.5],DO:[-70.7,19.1],DZ:[2.8,27.4],EC:[-78.2,-1.3],EE:[25.9,58.7],EG:[29.4,26.2],EH:[-12.6,24.0],ER:[38.3,15.8],ES:[-3.5,40.1],ET:[39.1,8.0],FI:[27.3,63.3],FJ:[178.0,-17.8],FK:[-58.7,-51.6],FM:[158.2,6.9],FO:[-7.1,62.2],FR:[2.6,46.7],GA:[11.8,-0.4],GB:[-2.1,54.4],GD:[-61.7,12.1],GE:[43.7,41.9],GF:[-53.2,3.9],GG:[-2.6,49.5],GH:[-1.0,7.7],GI:[-5.35,36.14],GL:[-39.3,74.3],GM:[-15.0,13.6],GN:[-10.0,10.6],GP:[-61.55,16.25],GQ:[9.0,2.3],GR:[21.7,39.5],GS:[-31.1,-55.7],GT:[-90.5,15.0],GU:[144.7,13.4],GW:[-14.5,12.2],GY:[-58.9,5.1],HK:[114.1,22.4],HM:[73.5,-53.1],HN:[-86.9,14.8],HR:[16.4,45.8],HT:[-72.2,19.3],HU:[19.4,47.1],ID:[101.9,-1.0],IE:[-7.8,53.1],IL:[34.8,30.9],IM:[-4.5,54.2],IN:[79.4,22.7],IO:[71.3,-6.2],IQ:[43.3,33.1],IR:[54.9,32.2],IS:[-18.7,64.8],IT:[11.1,44.7],JE:[-2.1,49.2],JM:[-77.3,18.1],JO:[36.4,30.8],JP:[138.4,36.1],KE:[37.9,0.5],KG:[74.5,41.7],KH:[104.5,12.6],KI:[-157.4,1.8],KM:[43.3,-11.7],KN:[-62.8,17.3],KP:[126.4,39.9],KR:[128.1,36.4],KW:[47.3,29.4],KY:[-81.2,19.3],KZ:[68.7,49.1],LA:[102.5,19.4],LB:[36.0,34.1],LC:[-61.0,13.9],LI:[9.6,47.1],LK:[80.7,7.6],LR:[-9.5,6.4],LS:[28.2,-29.5],LT:[24.1,55.1],LU:[6.1,49.7],LV:[25.5,57.1],LY:[18.0,26.6],MA:[-7.2,31.7],MC:[7.4,43.7],MD:[28.5,47.4],ME:[19.1,42.8],MF:[-63.0,18.1],MG:[46.7,-18.6],MH:[171.2,7.1],MK:[21.6,41.6],ML:[-2.0,18.7],MM:[95.8,21.6],MN:[104.2,46.0],MO:[113.6,22.1],MP:[145.7,15.2],MQ:[-61.02,14.64],MR:[-9.7,19.6],MS:[-62.2,16.7],MT:[14.4,35.9],MU:[57.6,-20.3],MV:[73.5,4.2],MW:[33.6,-13.4],MX:[-102.3,23.9],MY:[113.8,2.5],MZ:[37.8,-13.9],NA:[17.1,-20.6],NC:[165.1,-21.1],NE:[9.5,17.4],NF:[168.0,-29.0],NG:[7.5,9.4],NI:[-85.1,12.7],NL:[5.6,52.4],NO:[9.7,61.4],NP:[83.6,28.3],NR:[166.9,-0.5],NU:[-169.9,-19.0],NZ:[172.8,-39.8],OM:[57.3,22.1],PA:[-80.4,8.7],PE:[-72.9,-13.0],PF:[-149.5,-17.6],PG:[143.9,-5.7],PH:[122.5,11.2],PK:[68.5,29.3],PL:[19.5,52.0],PM:[-56.3,47.0],PN:[-128.3,-24.4],PR:[-66.5,18.2],PS:[35.3,32.0],PT:[-8.3,39.6],PW:[134.6,7.5],PY:[-60.1,-21.7],QA:[51.1,25.2],RE:[55.53,-21.13],RO:[25.0,45.7],RS:[20.8,44.2],RU:[44.7,58.2],RW:[30.1,-1.9],SA:[44.7,23.8],SB:[159.2,-8.0],SC:[55.5,-4.7],SD:[29.3,16.3],SE:[19.0,65.9],SG:[103.8,1.4],SH:[-5.7,-16.0],SI:[14.9,46.1],SJ:[16.0,78.3],SK:[19.0,48.7],SL:[-11.8,8.6],SM:[12.4,43.9],SN:[-14.8,15.1],SO:[45.2,3.6],SR:[-55.9,4.1],SS:[30.4,7.2],ST:[7.0,1.0],SV:[-88.9,13.7],SX:[-63.1,18.0],SY:[38.3,35.0],SZ:[31.5,-26.5],TC:[-71.8,21.8],TD:[18.6,15.1],TF:[69.1,-49.3],TG:[1.1,8.8],TH:[101.1,15.5],TJ:[72.6,38.2],TK:[-171.85,-9.17],TL:[125.9,-8.8],TM:[58.7,39.9],TN:[9.0,33.7],TO:[-175.2,-21.2],TR:[34.5,39.3],TT:[-60.9,11.0],TV:[179.2,-8.5],TW:[120.9,23.7],TZ:[35.0,-6.1],UA:[32.1,49.7],UG:[32.9,2.0],UM:[-160.0,-0.5],US:[-97.5,39.5],UY:[-56.0,-33.0],UZ:[64.0,41.7],VA:[12.5,41.9],VC:[-61.3,13.1],VE:[-64.6,7.2],VG:[-64.6,18.4],VI:[-64.8,17.7],VN:[105.4,21.7],VU:[166.9,-15.4],WF:[-178.1,-14.3],WS:[-172.4,-13.6],XK:[20.9,42.6],YE:[45.9,15.3],YT:[45.15,-12.83],ZA:[23.7,-29.7],ZM:[26.4,-14.7],ZW:[29.9,-18.9]}};/*}WORLD*/
+
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = 'http://www.w3.org/2000/svg';
+  var params = new URLSearchParams(location.search);
+  // ?still=1 (screenshots) shows everything grown, like reduced motion.
+  var reduced = params.get('still') === '1' || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if (params.get('still') === '1') document.documentElement.classList.add('still');
+  var DEMO = params.get('demo') === '1';
+  var PLAY_URL = 'https://b100mgame.com/';
+
+  // --- Language: the browser's (en, fr, es, de, pt-BR), English otherwise; ?lang=xx to check one -------------------
+  // Words follow docs/localisation.md (glossary, voice: FR tu, ES tú, DE du, PT-BR você). "n:" keys are names; an
+  // English name missing from a table is shown as it is. Keys ending _one / _other are counts (see tp below).
+  var L10N = {
+    en: {
+      title: 'B100M play stats', 
+      desc: 'How many people play B100M, which modes, for how long and where in the world. Totals only, never a name or an id.', 
+      skip: 'Skip to the stats', 
+      logoSmall: 'Play stats', 
+      demo: 'Example numbers for a preview · not live', 
+      play: 'Play B100M', 
+      foot1: 'Totals only: never a name, an id or an IP address. Counted from players who leave “Share my scores online” on. A country with fewer than three players shows as “a few”. Days are Pacific time; the numbers refresh every few minutes.', 
+      foot2: 'World map from Natural Earth. © 2026 R3Z Games LLC', 
+      layer_k: 'Layer {n}', 
+      level_k: 'Level {n}', 
+      players_n_one: '{n} player', 
+      players_n_other: '{n} players', 
+      few: 'a few', 
+      few_players: 'a few players', 
+      today_n: '{n} today', 
+      aria_map: 'World map: {list}.', 
+      aria_map_more: 'World map: {list}, and more in the list below.', 
+      aria_map_empty: 'World map with no players yet.', 
+      world_none: 'No countries yet: the first flowers open when the first games come in.', 
+      more_countries_one: '{n} more country', 
+      more_countries_other: '{n} more countries', 
+      few_each: 'a few each', 
+      show_top: 'Show the top 15', 
+      show_all_one: 'Show all {n} country', 
+      show_all_other: 'Show all {n} countries', 
+      nobody: 'Nobody yet. Yours could be the first flower.', 
+      of_players: '{p} of players', 
+      dev_none: 'No devices yet.', 
+      versions: 'Versions played', 
+      try_again: 'Try again', 
+      stamp_offline: 'Offline: showing the numbers from {d}', 
+      stamp_upd: 'Updated {t} · days in Pacific time', 
+      just_now: 'just now', 
+      mins_ago: '{n} min ago', 
+      empty_note: 'No gardens counted yet. Play a game with “Share my scores online” on, and yours is the first flower.', 
+      soon1: 'Play stats open soon.', 
+      soon2: 'The gardens are still being counted. Come back after the next update.', 
+      counting: 'Counting the gardens…', 
+      busy: 'Lots of visitors right now.', 
+      unreachable: 'The stats can’t be reached right now.', 
+      check: 'Check your connection, or try again in a little while.', 
+      os_any: 'Any song', 
+      os_day: 'Song of the day', 
+      bo_line: 'You against 99 gardens. The last light wins.', 
+      kick1: 'Every garden', 
+      kick2_one: 'Last {n} day', 
+      kick2_other: 'Last {n} days', 
+      machine_cap_one: 'Players who cleared each layer in the last {n} day', 
+      machine_cap_other: 'Players who cleared each layer in the last {n} days', 
+      duel_cap: 'Wins against each Pruner', 
+      hero_games: 'Games played', 
+      hero_gardeners: 'Gardeners', 
+      hero_time: 'Time played', 
+      hero_today: 'Players today', 
+      not_yet: 'Not yet', 
+      won_pct: '{p} of games won', 
+      no_games_lvl: 'No games yet', 
+      invite: 'No games yet this month. Yours could be the first.', 
+      play_short: 'Play', 
+      play_named: 'Play {m}', 
+      bo_lights: 'Last lights', 
+      bo_won: 'games won', 
+      avg_place: 'Average place', 
+      of_100: 'of 100', 
+      best_place: 'Best place', 
+      os_cap: 'Any song, or the same song for everyone each day', 
+      world_line_one: 'Players in {n} country; the pulsing flowers are playing today', 
+      world_line_other: 'Players in {n} countries; the pulsing flowers are playing today', 
+    },
+    fr: {
+      title: 'Statistiques de jeu B100M', 
+      desc: 'Combien de personnes jouent à B100M, à quels modes, combien de temps et où dans le monde. Des totaux seulement, jamais un nom ni un identifiant.', 
+      skip: 'Aller aux statistiques', 
+      logoSmall: 'Statistiques de jeu', 
+      demo: 'Chiffres d’exemple pour un aperçu · pas en direct', 
+      play: 'Jouer à B100M', 
+      foot1: 'Des totaux seulement : jamais un nom, un identifiant ni une adresse IP. Comptés parmi les joueurs qui laissent « Partager mes scores en ligne » activé. Un pays de moins de trois joueurs s’affiche comme « quelques-uns ». Les jours suivent l’heure du Pacifique ; les chiffres se mettent à jour toutes les quelques minutes.', 
+      foot2: 'Carte du monde : Natural Earth. © 2026 R3Z Games LLC', 
+      layer_k: 'Couche {n}', 
+      level_k: 'Niveau {n}', 
+      players_n_one: '{n} joueur', 
+      players_n_other: '{n} joueurs', 
+      few: 'quelques-uns', 
+      few_players: 'quelques joueurs', 
+      today_n: '{n} aujourd’hui', 
+      aria_map: 'Carte du monde : {list}.', 
+      aria_map_more: 'Carte du monde : {list}, et d’autres dans la liste ci-dessous.', 
+      aria_map_empty: 'Carte du monde, pas encore de joueurs.', 
+      world_none: 'Pas encore de pays : les premières fleurs s’ouvriront avec les premières parties.', 
+      more_countries_one: '{n} autre pays', 
+      more_countries_other: '{n} autres pays', 
+      few_each: 'quelques-uns chacun', 
+      show_top: 'Voir le top 15', 
+      show_all_one: 'Voir {n} pays', 
+      show_all_other: 'Voir les {n} pays', 
+      nobody: 'Personne pour l’instant. Ton jardin pourrait être la première fleur.', 
+      of_players: '{p} des joueurs', 
+      dev_none: 'Pas encore d’appareils.', 
+      versions: 'Versions jouées', 
+      try_again: 'Réessayer', 
+      stamp_offline: 'Hors ligne : chiffres du {d}', 
+      stamp_upd: 'Mis à jour {t} · jours à l’heure du Pacifique', 
+      just_now: 'à l’instant', 
+      mins_ago: 'il y a {n} min', 
+      empty_note: 'Aucun jardin compté pour l’instant. Joue une partie avec « Partager mes scores en ligne » activé, et ton jardin sera la première fleur.', 
+      soon1: 'Les statistiques arrivent bientôt.', 
+      soon2: 'On compte encore les jardins. Reviens après la prochaine mise à jour.', 
+      counting: 'On compte les jardins…', 
+      busy: 'Beaucoup de visiteurs en ce moment.', 
+      unreachable: 'Impossible de joindre les statistiques pour l’instant.', 
+      check: 'Vérifie ta connexion, ou réessaie dans un petit moment.', 
+      os_any: 'N’importe quelle chanson', 
+      os_day: 'Chanson du jour', 
+      bo_line: 'Toi contre 99 jardins. La dernière lumière gagne.', 
+      kick1: 'Chaque jardin', 
+      kick2_one: 'Dernier jour', 
+      kick2_other: '{n} derniers jours', 
+      machine_cap_one: 'Joueurs ayant terminé chaque couche le dernier jour', 
+      machine_cap_other: 'Joueurs ayant terminé chaque couche ces {n} derniers jours', 
+      duel_cap: 'Victoires contre chaque Élagueur', 
+      hero_games: 'Parties jouées', 
+      hero_gardeners: 'Jardiniers', 
+      hero_time: 'Temps de jeu', 
+      hero_today: 'Joueurs aujourd’hui', 
+      not_yet: 'Pas encore', 
+      won_pct: '{p} des parties gagnées', 
+      no_games_lvl: 'Aucune partie', 
+      invite: 'Aucune partie ce mois-ci. La tienne pourrait être la première.', 
+      play_short: 'Jouer', 
+      play_named: 'Jouer à {m}', 
+      bo_lights: 'Dernières lumières', 
+      bo_won: 'parties gagnées', 
+      avg_place: 'Place moyenne', 
+      of_100: 'sur 100', 
+      best_place: 'Meilleure place', 
+      os_cap: 'N’importe quelle chanson, ou la même pour tous chaque jour', 
+      world_line_one: 'Joueurs dans {n} pays ; les fleurs qui pulsent jouent aujourd’hui', 
+      world_line_other: 'Joueurs dans {n} pays ; les fleurs qui pulsent jouent aujourd’hui', 
+      'n:Into the Machine': 'Dans la Machine', 
+      'n:Duel': 'Duel', 
+      'n:Blackout': 'Black-out', 
+      'n:One Song': 'Une chanson', 
+      'n:World': 'Monde', 
+      'n:Devices': 'Appareils', 
+      'n:Cold Boot': 'Démarrage à froid', 
+      'n:Data Canopy': 'Canopée des données', 
+      'n:Firewall Thicket': 'Fourré pare-feu', 
+      'n:Memory Sea': 'Mer de mémoire', 
+      'n:The Core': 'Le Cœur', 
+      'n:Seedling': 'Pousse', 
+      'n:Weeder': 'Désherbeur', 
+      'n:Hedger': 'Tailleur de haies', 
+      'n:Thornhand': 'Main d’épines', 
+      'n:Iron Shears': 'Cisailles de fer', 
+      'n:Browser': 'Navigateur', 
+      'n:iPhone and iPad': 'iPhone et iPad', 
+      'n:Other': 'Autre', 
+    },
+    es: {
+      title: 'Estadísticas de juego de B100M', 
+      desc: 'Cuánta gente juega a B100M, a qué modos, cuánto tiempo y en qué lugares del mundo. Solo totales, nunca un nombre ni un identificador.', 
+      skip: 'Ir a las estadísticas', 
+      logoSmall: 'Estadísticas de juego', 
+      demo: 'Números de ejemplo para una vista previa · no en directo', 
+      play: 'Jugar a B100M', 
+      foot1: 'Solo totales: nunca un nombre, un identificador ni una dirección IP. Se cuenta a quienes dejan activado «Compartir mis puntuaciones en línea». Un país con menos de tres jugadores aparece como «unos pocos». Los días van en hora del Pacífico; las cifras se actualizan cada pocos minutos.', 
+      foot2: 'Mapa del mundo de Natural Earth. © 2026 R3Z Games LLC', 
+      layer_k: 'Capa {n}', 
+      level_k: 'Nivel {n}', 
+      players_n_one: '{n} jugador', 
+      players_n_other: '{n} jugadores', 
+      few: 'unos pocos', 
+      few_players: 'unos pocos jugadores', 
+      today_n: '{n} hoy', 
+      aria_map: 'Mapa del mundo: {list}.', 
+      aria_map_more: 'Mapa del mundo: {list}, y más en la lista de abajo.', 
+      aria_map_empty: 'Mapa del mundo, aún sin jugadores.', 
+      world_none: 'Aún no hay países: las primeras flores se abrirán con las primeras partidas.', 
+      more_countries_one: '{n} país más', 
+      more_countries_other: '{n} países más', 
+      few_each: 'unos pocos cada uno', 
+      show_top: 'Ver el top 15', 
+      show_all_one: 'Ver {n} país', 
+      show_all_other: 'Ver los {n} países', 
+      nobody: 'Nadie todavía. Tu jardín podría ser la primera flor.', 
+      of_players: '{p} de los jugadores', 
+      dev_none: 'Aún no hay dispositivos.', 
+      versions: 'Versiones jugadas', 
+      try_again: 'Reintentar', 
+      stamp_offline: 'Sin conexión: cifras del {d}', 
+      stamp_upd: 'Actualizado {t} · días en hora del Pacífico', 
+      just_now: 'justo ahora', 
+      mins_ago: 'hace {n} min', 
+      empty_note: 'Aún no se ha contado ningún jardín. Juega una partida con «Compartir mis puntuaciones en línea» activado, y tu jardín será la primera flor.', 
+      soon1: 'Las estadísticas abren pronto.', 
+      soon2: 'Aún estamos contando los jardines. Vuelve después de la próxima actualización.', 
+      counting: 'Contando los jardines…', 
+      busy: 'Hay muchas visitas ahora mismo.', 
+      unreachable: 'No se puede acceder a las estadísticas ahora mismo.', 
+      check: 'Revisa tu conexión o vuelve a intentarlo dentro de un rato.', 
+      os_any: 'Cualquier canción', 
+      os_day: 'Canción del día', 
+      bo_line: 'Tú contra 99 jardines. Gana la última luz.', 
+      kick1: 'Cada jardín', 
+      kick2_one: 'Último día', 
+      kick2_other: 'Últimos {n} días', 
+      machine_cap_one: 'Jugadores que superaron cada capa en el último día', 
+      machine_cap_other: 'Jugadores que superaron cada capa en los últimos {n} días', 
+      duel_cap: 'Victorias contra cada Podador', 
+      hero_games: 'Partidas jugadas', 
+      hero_gardeners: 'Jardineros', 
+      hero_time: 'Tiempo jugado', 
+      hero_today: 'Jugadores hoy', 
+      not_yet: 'Aún no', 
+      won_pct: '{p} de partidas ganadas', 
+      no_games_lvl: 'Ninguna partida', 
+      invite: 'Ninguna partida este mes. La tuya podría ser la primera.', 
+      play_short: 'Jugar', 
+      play_named: 'Jugar {m}', 
+      bo_lights: 'Últimas luces', 
+      bo_won: 'partidas ganadas', 
+      avg_place: 'Puesto medio', 
+      of_100: 'de 100', 
+      best_place: 'Mejor puesto', 
+      os_cap: 'Cualquier canción, o la misma para todos cada día', 
+      world_line_one: 'Jugadores en {n} país; las flores que laten juegan hoy', 
+      world_line_other: 'Jugadores en {n} países; las flores que laten juegan hoy', 
+      'n:Into the Machine': 'Dentro de la Máquina', 
+      'n:Duel': 'Duelo', 
+      'n:Blackout': 'Apagón', 
+      'n:One Song': 'Una canción', 
+      'n:World': 'Mundo', 
+      'n:Devices': 'Dispositivos', 
+      'n:Cold Boot': 'Arranque en frío', 
+      'n:Data Canopy': 'Dosel de datos', 
+      'n:Firewall Thicket': 'Matorral cortafuegos', 
+      'n:Memory Sea': 'Mar de memoria', 
+      'n:The Core': 'El Núcleo', 
+      'n:Seedling': 'Brote', 
+      'n:Weeder': 'Escardador', 
+      'n:Hedger': 'Recortador', 
+      'n:Thornhand': 'Mano de espinas', 
+      'n:Iron Shears': 'Tijeras de hierro', 
+      'n:Browser': 'Navegador', 
+      'n:iPhone and iPad': 'iPhone y iPad', 
+      'n:Other': 'Otro', 
+    },
+    de: {
+      title: 'B100M-Spielstatistik', 
+      desc: 'Wie viele Menschen B100M spielen, welche Modi, wie lange und wo auf der Welt. Nur Summen, nie ein Name oder eine ID.', 
+      skip: 'Zu den Statistiken', 
+      logoSmall: 'Spielstatistik', 
+      demo: 'Beispielzahlen für eine Vorschau · nicht live', 
+      play: 'B100M spielen', 
+      foot1: 'Nur Summen: nie ein Name, eine ID oder eine IP-Adresse. Gezählt werden Spieler, die „Meine Punkte online teilen“ eingeschaltet lassen. Ein Land mit weniger als drei Spielern erscheint als „ein paar“. Tage nach pazifischer Zeit; die Zahlen werden alle paar Minuten aktualisiert.', 
+      foot2: 'Weltkarte von Natural Earth. © 2026 R3Z Games LLC', 
+      layer_k: 'Schicht {n}', 
+      level_k: 'Stufe {n}', 
+      players_n_one: '{n} Spieler', 
+      players_n_other: '{n} Spieler', 
+      few: 'ein paar', 
+      few_players: 'ein paar Spieler', 
+      today_n: '{n} heute', 
+      aria_map: 'Weltkarte: {list}.', 
+      aria_map_more: 'Weltkarte: {list} und weitere in der Liste unten.', 
+      aria_map_empty: 'Weltkarte, noch keine Spieler.', 
+      world_none: 'Noch keine Länder: Die ersten Blumen öffnen sich mit den ersten Spielen.', 
+      more_countries_one: '{n} weiteres Land', 
+      more_countries_other: '{n} weitere Länder', 
+      few_each: 'je ein paar', 
+      show_top: 'Top 15 zeigen', 
+      show_all_one: '{n} Land zeigen', 
+      show_all_other: 'Alle {n} Länder zeigen', 
+      nobody: 'Noch niemand. Dein Garten könnte die erste Blume sein.', 
+      of_players: '{p} der Spieler', 
+      dev_none: 'Noch keine Geräte.', 
+      versions: 'Gespielte Versionen', 
+      try_again: 'Noch mal versuchen', 
+      stamp_offline: 'Offline: Zahlen vom {d}', 
+      stamp_upd: 'Aktualisiert {t} · Tage nach pazifischer Zeit', 
+      just_now: 'gerade eben', 
+      mins_ago: 'vor {n} Min.', 
+      empty_note: 'Noch keine Gärten gezählt. Spiel eine Runde mit „Meine Punkte online teilen“ eingeschaltet, und dein Garten wird die erste Blume.', 
+      soon1: 'Die Spielstatistik öffnet bald.', 
+      soon2: 'Die Gärten werden noch gezählt. Schau nach dem nächsten Update wieder vorbei.', 
+      counting: 'Die Gärten werden gezählt…', 
+      busy: 'Gerade sind sehr viele Besucher da.', 
+      unreachable: 'Die Statistik ist gerade nicht erreichbar.', 
+      check: 'Prüfe deine Verbindung oder versuch es gleich noch mal.', 
+      os_any: 'Jeder Song', 
+      os_day: 'Song des Tages', 
+      bo_line: 'Du gegen 99 Gärten. Das letzte Licht gewinnt.', 
+      kick1: 'Jeder Garten', 
+      kick2_one: 'Letzter Tag', 
+      kick2_other: 'Letzte {n} Tage', 
+      machine_cap_one: 'Spieler, die jede Schicht am letzten Tag geschafft haben', 
+      machine_cap_other: 'Spieler, die jede Schicht in den letzten {n} Tagen geschafft haben', 
+      duel_cap: 'Siege gegen jeden Scherer', 
+      hero_games: 'Gespielte Spiele', 
+      hero_gardeners: 'Gärtner', 
+      hero_time: 'Spielzeit', 
+      hero_today: 'Spieler heute', 
+      not_yet: 'Noch nicht', 
+      won_pct: '{p} der Spiele gewonnen', 
+      no_games_lvl: 'Noch kein Spiel', 
+      invite: 'Diesen Monat noch kein Spiel. Deins könnte das erste sein.', 
+      play_short: 'Spielen', 
+      play_named: '{m} spielen', 
+      bo_lights: 'Letzte Lichter', 
+      bo_won: 'gewonnene Spiele', 
+      avg_place: 'Mittlerer Platz', 
+      of_100: 'von 100', 
+      best_place: 'Bester Platz', 
+      os_cap: 'Jeder Song, oder jeden Tag derselbe Song für alle', 
+      world_line_one: 'Spieler in {n} Land; die pulsierenden Blumen spielen heute', 
+      world_line_other: 'Spieler in {n} Ländern; die pulsierenden Blumen spielen heute', 
+      'n:Into the Machine': 'In die Maschine', 
+      'n:Duel': 'Duell', 
+      'n:Blackout': 'Blackout', 
+      'n:One Song': 'Ein Song', 
+      'n:World': 'Welt', 
+      'n:Devices': 'Geräte', 
+      'n:Cold Boot': 'Kaltstart', 
+      'n:Data Canopy': 'Datenkrone', 
+      'n:Firewall Thicket': 'Firewall-Dickicht', 
+      'n:Memory Sea': 'Speichermeer', 
+      'n:The Core': 'Der Kern', 
+      'n:Seedling': 'Keimling', 
+      'n:Weeder': 'Jäter', 
+      'n:Hedger': 'Heckenschneider', 
+      'n:Thornhand': 'Dornhand', 
+      'n:Iron Shears': 'Eisenschere', 
+      'n:Browser': 'Browser', 
+      'n:iPhone and iPad': 'iPhone und iPad', 
+      'n:Other': 'Andere', 
+    },
+    'pt-BR': {
+      title: 'Estatísticas de jogo do B100M', 
+      desc: 'Quantas pessoas jogam B100M, quais modos, por quanto tempo e onde no mundo. Só totais, nunca um nome ou um identificador.', 
+      skip: 'Ir para as estatísticas', 
+      logoSmall: 'Estatísticas de jogo', 
+      demo: 'Números de exemplo para uma prévia · não é ao vivo', 
+      play: 'Jogar B100M', 
+      foot1: 'Só totais: nunca um nome, um identificador ou um endereço IP. Contamos quem deixa “Compartilhar minhas pontuações online” ligado. Um país com menos de três jogadores aparece como “alguns”. Os dias seguem o horário do Pacífico; os números se atualizam a cada poucos minutos.', 
+      foot2: 'Mapa-múndi do Natural Earth. © 2026 R3Z Games LLC', 
+      layer_k: 'Camada {n}', 
+      level_k: 'Nível {n}', 
+      players_n_one: '{n} jogador', 
+      players_n_other: '{n} jogadores', 
+      few: 'alguns', 
+      few_players: 'alguns jogadores', 
+      today_n: '{n} hoje', 
+      aria_map: 'Mapa-múndi: {list}.', 
+      aria_map_more: 'Mapa-múndi: {list} e mais na lista abaixo.', 
+      aria_map_empty: 'Mapa-múndi, ainda sem jogadores.', 
+      world_none: 'Ainda não há países: as primeiras flores se abrem quando chegarem as primeiras partidas.', 
+      more_countries_one: 'mais {n} país', 
+      more_countries_other: 'mais {n} países', 
+      few_each: 'alguns em cada', 
+      show_top: 'Ver o top 15', 
+      show_all_one: 'Ver {n} país', 
+      show_all_other: 'Ver os {n} países', 
+      nobody: 'Ninguém ainda. Seu jardim pode ser a primeira flor.', 
+      of_players: '{p} dos jogadores', 
+      dev_none: 'Ainda não há dispositivos.', 
+      versions: 'Versões jogadas', 
+      try_again: 'Tentar de novo', 
+      stamp_offline: 'Offline: números de {d}', 
+      stamp_upd: 'Atualizado {t} · dias no horário do Pacífico', 
+      just_now: 'agora mesmo', 
+      mins_ago: 'há {n} min', 
+      empty_note: 'Nenhum jardim contado ainda. Jogue uma partida com “Compartilhar minhas pontuações online” ligado, e seu jardim será a primeira flor.', 
+      soon1: 'As estatísticas abrem em breve.', 
+      soon2: 'Os jardins ainda estão sendo contados. Volte depois da próxima atualização.', 
+      counting: 'Contando os jardins…', 
+      busy: 'Muitos visitantes agora.', 
+      unreachable: 'Não foi possível acessar as estatísticas agora.', 
+      check: 'Verifique sua conexão ou tente de novo daqui a pouco.', 
+      os_any: 'Qualquer música', 
+      os_day: 'Música do dia', 
+      bo_line: 'Você contra 99 jardins. A última luz vence.', 
+      kick1: 'Cada jardim', 
+      kick2_one: 'Último dia', 
+      kick2_other: 'Últimos {n} dias', 
+      machine_cap_one: 'Jogadores que concluíram cada camada no último dia', 
+      machine_cap_other: 'Jogadores que concluíram cada camada nos últimos {n} dias', 
+      duel_cap: 'Vitórias contra cada Podador', 
+      hero_games: 'Partidas jogadas', 
+      hero_gardeners: 'Jardineiros', 
+      hero_time: 'Tempo de jogo', 
+      hero_today: 'Jogadores hoje', 
+      not_yet: 'Ainda não', 
+      won_pct: '{p} das partidas vencidas', 
+      no_games_lvl: 'Nenhuma partida', 
+      invite: 'Nenhum jogo neste mês. O seu pode ser o primeiro.', 
+      play_short: 'Jogar', 
+      play_named: 'Jogar {m}', 
+      bo_lights: 'Últimas luzes', 
+      bo_won: 'partidas vencidas', 
+      avg_place: 'Colocação média', 
+      of_100: 'de 100', 
+      best_place: 'Melhor colocação', 
+      os_cap: 'Qualquer música, ou a mesma para todo mundo a cada dia', 
+      world_line_one: 'Jogadores em {n} país; as flores que pulsam estão jogando hoje', 
+      world_line_other: 'Jogadores em {n} países; as flores que pulsam estão jogando hoje', 
+      'n:Into the Machine': 'Dentro da Máquina', 
+      'n:Duel': 'Duelo', 
+      'n:Blackout': 'Apagão', 
+      'n:One Song': 'Uma música', 
+      'n:World': 'Mundo', 
+      'n:Devices': 'Dispositivos', 
+      'n:Cold Boot': 'Partida a frio', 
+      'n:Data Canopy': 'Dossel de dados', 
+      'n:Firewall Thicket': 'Mata do firewall', 
+      'n:Memory Sea': 'Mar de memória', 
+      'n:The Core': 'O Núcleo', 
+      'n:Seedling': 'Broto', 
+      'n:Weeder': 'Capinador', 
+      'n:Hedger': 'Aparador', 
+      'n:Thornhand': 'Mão de espinhos', 
+      'n:Iron Shears': 'Tesoura de ferro', 
+      'n:Browser': 'Navegador', 
+      'n:iPhone and iPad': 'iPhone e iPad', 
+      'n:Other': 'Outro', 
+    },
+  };
+  var LANG = (function () {
+    var q = params.get('lang'), list = q ? [q] : (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en']);
+    for (var i = 0; i < list.length; i++) {
+      var l = String(list[i] || '').toLowerCase(), base = l.split(/[-_]/)[0];
+      if (base === 'pt') return 'pt-BR';
+      if (base === 'en' || base === 'fr' || base === 'es' || base === 'de') return base;
+    }
+    return 'en';
+  })();
+  var LOC = LANG === 'en' ? 'en-US' : LANG;
+  var DICT = L10N[LANG], EN = L10N.en;
+  // t('key', {name: value}) fills {name}; tp('key', count, vars) picks key_one / key_other (FR and PT-BR: 0 and 1 are one).
+  function t(key, vars) {
+    var s = DICT[key] != null ? DICT[key] : EN[key] != null ? EN[key] : key.indexOf('n:') === 0 ? key.slice(2) : key;
+    return vars ? s.replace(/\{(\w+)\}/g, function (m, k) { return vars[k] != null ? vars[k] : m; }) : s;
+  }
+  function tp(key, count, vars) {
+    var one = LANG === 'fr' || LANG === 'pt-BR' ? count >= 0 && count < 2 : count === 1;
+    return t(key + (one ? '_one' : '_other'), vars);
+  }
+  var nm = function (s) { return t('n:' + s); };
+  // The page's own words, written in English in the HTML.
+  document.documentElement.lang = LANG;
+  if (LANG !== 'en') {
+    document.title = t('title');
+    var md = document.querySelector('meta[name="description"]'); if (md) md.setAttribute('content', t('desc'));
+    document.querySelectorAll('[data-i18n]').forEach(function (e) { e.textContent = t(e.getAttribute('data-i18n')); });
+  }
+
+  // --- Numbers and words ------------------------------------------------------------------------------------------
+  var fmt = new Intl.NumberFormat(LOC);
+  var fmt1 = new Intl.NumberFormat(LOC, { minimumFractionDigits: 1, maximumFractionDigits: 1 }), pctFmt = new Intl.NumberFormat(LOC, { style: 'percent', maximumFractionDigits: 0 });
+  var dec1 = function (v) { return LANG === 'en' ? v.toFixed(1) : fmt1.format(v); };
+  var n = function (v) { return fmt.format(Math.round(v || 0)); };
+  var tn = function (s) { return '<span class="tn">' + String(s).replace(/\d/g, '<i>$&</i>') + '</span>'; };
+  var few = function (v) { return v < 3 ? t('few') : n(v); };  // small counts never single anyone out
+  var hrs = function (s) { s = s || 0; return s < 3600 ? Math.round(s / 60) + ' min' : s < 36000 ? dec1(s / 3600) + ' h' : n(s / 3600) + ' h'; };
+  var pct = function (a, b) { if (!b) return '–'; var r = Math.round(100 * a / b); return LANG === 'en' ? r + '%' : pctFmt.format(r / 100); };
+  var ord = function (v) { if (!v) return '–'; if (LANG === 'fr') return v + (v === 1 ? 'er' : 'e'); if (LANG === 'es') return v + '.º'; if (LANG === 'de') return v + '.'; if (LANG === 'pt-BR') return v + 'º'; var s = ['th', 'st', 'nd', 'rd'], m = v % 100; return v + (s[(m - 20) % 10] || s[m] || s[0]); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var regionNames = null; try { regionNames = new Intl.DisplayNames([LOC, 'en'], { type: 'region' }); } catch (e) {}
+  var country = function (k) { var s = k; try { s = regionNames ? regionNames.of(k) : k; } catch (e) {} return s || k; };
+
+  // --- Colour: the game's hot-to-cold vine (TreeTitle.vine_color) and each mode's, layer's and Pruner's own --------
+  var HOT = [255, 61, 77], MID = [230, 89, 255], COLD = [64, 153, 255];
+  var ss = function (a, b, x) { var q = Math.min(1, Math.max(0, (x - a) / (b - a))); return q * q * (3 - 2 * q); };
+  var mix = function (a, b, q) { return [a[0] + (b[0] - a[0]) * q, a[1] + (b[1] - a[1]) * q, a[2] + (b[2] - a[2]) * q]; };
+  var ramp = function (u) { return u < 0.5 ? mix(HOT, MID, ss(0, 0.5, u)) : mix(MID, COLD, ss(0.5, 1, u)); };
+  var rgb = function (c, a) { return a == null ? 'rgb(' + c.map(Math.round).join(',') + ')' : 'rgba(' + c.map(Math.round).join(',') + ',' + a + ')'; };
+  var trip = function (c) { return c.map(Math.round).join(','); };
+  var hex = function (h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; };
+  var tint = function (c, q) { return mix(c, [255, 255, 255], q); };
+  var C = { journey: hex('#4dffb0'), onesong: hex('#ff9e4d'), blackout: hex('#b07aff'), duel: hex('#ff4f8c'), leaf: hex('#59ffbf'), gold: hex('#ffd25a'), pink: hex('#ff8cdb'), sky: hex('#59dbff') };
+  // Journey's layers (godot/game/stages.gd) and the Pruner's levels (godot/ui/tree_title.gd), each in its colour.
+  var LAYERS = [['Cold Boot', '#4dffb3'], ['Data Canopy', '#9e61ff'], ['Firewall Thicket', '#ff4d59'], ['Memory Sea', '#40bfff'], ['The Core', '#ffa64d']];
+  var PRUNERS = [['Seedling', '#7dffc4'], ['Weeder', '#ffd25a'], ['Hedger', '#ff9e4d'], ['Thornhand', '#ff5a7a'], ['Iron Shears', '#ff3d4d']];
+  var MODE_NAME = { journey: 'Into the Machine', duel: 'Duel', blackout: 'Blackout', onesong: 'One Song' };
+
+  // --- SVG helpers ------------------------------------------------------------------------------------------------
+  function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  var f1 = function (v) { return Math.round(v * 10) / 10; };
+  var P = function (x, y) { return f1(x) + ' ' + f1(y); };
+  // A smooth path through points (Catmull-Rom as cubic Béziers).
+  function smooth(pts) {
+    var d = 'M' + P(pts[0][0], pts[0][1]);
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      d += ' C' + P(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6) + ' ' + P(p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6) + ' ' + P(p2[0], p2[1]);
+    }
+    return d;
+  }
+  // A petal from r0 to r1 out of centre (cx, cy) at angle a, w wide.
+  function petal(cx, cy, a, r0, r1, w) {
+    var dx = Math.cos(a), dy = Math.sin(a), px = -dy * w, py = dx * w, rm = (r0 + r1) / 2;
+    var bx = cx + dx * r0, by = cy + dy * r0, tx = cx + dx * r1, ty = cy + dy * r1, mx = cx + dx * rm, my = cy + dy * rm;
+    return 'M' + P(bx, by) + ' Q' + P(mx + px, my + py) + ' ' + P(tx, ty) + ' Q' + P(mx - px, my - py) + ' ' + P(bx, by) + 'Z';
+  }
+  var gid = 0;
+  function radial(svg, col, a) { var id = 'rg' + (gid++), defs = svg.querySelector('defs') || el('defs', {}, svg), g = el('radialGradient', { id: id }, defs); el('stop', { offset: 0, 'stop-color': col, 'stop-opacity': a }, g); el('stop', { offset: 1, 'stop-color': col, 'stop-opacity': 0 }, g); return 'url(#' + id + ')'; }
+  // A flower of light: glow, petals, white heart. open 0..1.
+  function bloom(svg, g, x, y, r, col, open, petals, spin) {
+    var c = rgb(col), k = petals || 5, o = open == null ? 1 : open;
+    el('circle', { cx: f1(x), cy: f1(y), r: f1(r * 2.1), fill: radial(svg, c, 0.32 + 0.2 * o) }, g);
+    for (var i = 0; i < k; i++) {
+      var a = -Math.PI / 2 + (i + (spin || 0)) * 2 * Math.PI / k;
+      var d = petal(x, y, a, r * 0.18, r * (0.65 + 0.35 * o), r * (0.22 + 0.12 * o));
+      el('path', { d: d, fill: rgb(col, 0.2 + 0.15 * o), stroke: c, 'stroke-width': Math.max(1, r * 0.09), 'stroke-linejoin': 'round' }, g);
+    }
+    el('circle', { cx: f1(x), cy: f1(y), r: f1(Math.max(1.2, r * 0.2)), fill: '#fff' }, g);
+  }
+  // Platform glyphs: drawn small, plain shapes (no marks of the makers).
+  var PLAT = {
+    web: ['Browser', [89, 220, 255], function (g, c) { el('circle', { cx: 0, cy: 0, r: 9, fill: 'none', stroke: c, 'stroke-width': 1.5 }, g); el('ellipse', { cx: 0, cy: 0, rx: 4, ry: 9, fill: 'none', stroke: c, 'stroke-width': 1.1 }, g); el('path', { d: 'M-8.5 -3 Q0 -1 8.5 -3 M-8.5 3 Q0 5 8.5 3', fill: 'none', stroke: c, 'stroke-width': 1.1 }, g); }],
+    windows: ['Windows', [64, 153, 255], function (g, c) { el('path', { d: 'M-9 -7 Q-9 -8.6 -7.4 -8.8 L-1 -9.6 L-1 -0.8 L-9 -0.8 Z M1 -9.8 L7.6 -10.6 Q9.4 -10.8 9.4 -9 L9.4 -0.8 L1 -0.8 Z M-9 0.8 L-1 0.8 L-1 9.6 L-7.4 8.8 Q-9 8.6 -9 7 Z M1 0.8 L9.4 0.8 L9.4 9 Q9.4 10.8 7.6 10.6 L1 9.8 Z', fill: c.replace('rgb', 'rgba').replace(')', ',.18)'), stroke: c, 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, g); }],
+    macos: ['macOS', [230, 89, 255], function (g, c) { el('rect', { x: -10, y: -8, width: 20, height: 13, rx: 2.6, fill: 'none', stroke: c, 'stroke-width': 1.5 }, g); el('path', { d: 'M-3 9 Q0 7.6 3 9 M0 5 L0 8', fill: 'none', stroke: c, 'stroke-width': 1.4, 'stroke-linecap': 'round' }, g); el('circle', { cx: 0, cy: -1.6, r: 2, fill: c }, g); }],
+    linux: ['Linux', [255, 210, 90], function (g, c) { el('path', { d: 'M-8 -5 L-2.5 0 L-8 5', fill: 'none', stroke: c, 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g); el('path', { d: 'M0.5 6.5 L8.5 6.5', stroke: c, 'stroke-width': 1.8, 'stroke-linecap': 'round' }, g); }],
+    android: ['Android', [89, 255, 191], function (g, c) { el('path', { d: 'M-8.5 4 A8.5 8.5 0 0 1 8.5 4 Z', fill: 'none', stroke: c, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, g); el('path', { d: 'M-5 -3.6 L-7.6 -8 M5 -3.6 L7.6 -8', stroke: c, 'stroke-width': 1.4, 'stroke-linecap': 'round' }, g); el('circle', { cx: -3.2, cy: 0.4, r: 1.1, fill: c }, g); el('circle', { cx: 3.2, cy: 0.4, r: 1.1, fill: c }, g); }],
+    ios: ['iPhone and iPad', [255, 120, 160], function (g, c) { el('rect', { x: -6, y: -10.5, width: 12, height: 21, rx: 3.4, fill: 'none', stroke: c, 'stroke-width': 1.5 }, g); el('path', { d: 'M-2 -8 L2 -8', stroke: c, 'stroke-width': 1.6, 'stroke-linecap': 'round' }, g); el('path', { d: 'M-2.4 7.6 L2.4 7.6', stroke: c, 'stroke-width': 1.1, 'stroke-linecap': 'round', opacity: 0.7 }, g); }],
+  };
+  function platGlyph(k) {
+    var p = PLAT[k] || ['Other', [163, 174, 208], function (g, c) { el('circle', { cx: 0, cy: 0, r: 6, fill: 'none', stroke: c, 'stroke-width': 1.5 }, g); }];
+    var s = el('svg', { viewBox: '-12 -12 24 24', 'aria-hidden': 'true', class: 'gl' });
+    var g = el('g', {}, s); p[2](g, rgb(p[1])); g.style.filter = 'drop-shadow(0 0 3px ' + rgb(p[1], 0.7) + ')';
+    return { svg: s, name: nm(p[0]), col: p[1] };
+  }
+
+  // --- Tooltip ---------------------------------------------------------------------------------------------------
+  var tipEl = $('tip');
+  function tip(html, x, y, col) {
+    if (!html) { tipEl.hidden = true; return; }
+    tipEl.innerHTML = html; tipEl.hidden = false;
+    tipEl.style.setProperty('--c', col ? rgb(tint(col, 0.35)) : '#fff');
+    var w = tipEl.offsetWidth, h = tipEl.offsetHeight, vw = document.documentElement.clientWidth;
+    var left = Math.max(8, Math.min(vw - w - 8, x - w / 2)), top = y - h - 14;
+    if (top < 8) top = y + 18;
+    tipEl.style.left = left + 'px'; tipEl.style.top = top + 'px';
+  }
+  window.addEventListener('scroll', function () { tip(null); }, { passive: true });
+
+  // --- Page pieces -----------------------------------------------------------------------------------------------
+  function div(cls, html, parent) { var d = document.createElement('div'); if (cls) d.className = cls; if (html != null) d.innerHTML = html; if (parent) parent.appendChild(d); return d; }
+  function section(id, title, cap) {
+    var s = document.createElement('section'); s.className = 'sec'; s.id = id; s.setAttribute('aria-labelledby', id + '-h');
+    s.innerHTML = '<div class="sh"><h2 id="' + id + '-h">' + esc(title) + '</h2>' + (cap ? '<p class="cap">' + esc(cap) + '</p>' : '') + '</div>';
+    $('stats').appendChild(s); return s;
+  }
+  // A number that counts up as the page grows in: the final figure is read out, the climbing one is hidden.
+  var counts = [];
+  function num(v, kind) {
+    var fin = kind === 'h' ? hrs(v) : n(v);
+    counts.push(1);
+    return '<span class="sr">' + esc(fin) + '</span><span class="cu" aria-hidden="true" data-v="' + Math.round(v) + '" data-k="' + (kind || 'n') + '">' + tn(fin) + '</span>';
+  }
+  function runCounts(root) {
+    var nodes = root.querySelectorAll('.cu'), f = function (nd, v) { return tn(nd.getAttribute('data-k') === 'h' ? hrs(v) : n(v)); };
+    if (reduced) return;
+    var t0 = null;
+    nodes.forEach(function (nd) { nd.innerHTML = f(nd, 0); });
+    function step(ts) {
+      if (t0 == null) t0 = ts;
+      var u = Math.min(1, (ts - t0) / 1100), e = 1 - Math.pow(1 - u, 3);
+      nodes.forEach(function (nd) { nd.innerHTML = f(nd, +nd.getAttribute('data-v') * e); });
+      if (u < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function find(list, key, v) { for (var i = 0; i < (list || []).length; i++) if (list[i] && +list[i][key] === v) return list[i]; return {}; }
+  var wordCount = function (s) { return String(s).trim().split(/\s+/).length; };
+  // One invitation row for a mode nobody played: its colour, a line, and its PLAY action (three words at most).
+  function invite(parent, mode) {
+    var named = t('play_named', { m: nm(MODE_NAME[mode]) }), shown = wordCount(named) <= 3 ? named : t('play_short');
+    var r = div('invite', null, parent); r.style.setProperty('--c', trip(C[mode]));
+    r.innerHTML = '<span class="ring" aria-hidden="true"></span><div class="it"><b>' + esc(nm(MODE_NAME[mode])) + '</b><span>' + esc(t('invite')) + '</span></div>' +
+      '<a class="pill" href="' + PLAY_URL + '" aria-label="' + esc(named) + '">' + esc(shown) + '</a>';
+  }
+
+  // --- Overview: the hero row ---------------------------------------------------------------------------------------
+  function overview(d) {
+    var tot = d.totals || {};
+    if (!(tot.games > 0 || tot.players > 0)) { div('note', esc(t('empty_note')), $('stats')); return; }
+    var items = [[tot.games, 'n', t('hero_games'), C.gold], [tot.month, 'n', t('hero_gardeners'), C.pink], [tot.seconds, 'h', t('hero_time'), C.leaf], [tot.today, 'n', t('hero_today'), C.sky]];
+    var ul = document.createElement('ul'); ul.className = 'hero';
+    items.forEach(function (it) {
+      var li = document.createElement('li'); li.className = 'card'; li.style.setProperty('--c', trip(it[3]));
+      li.innerHTML = '<b>' + num(it[0] || 0, it[1]) + '</b><span class="lab">' + esc(it[2]) + '</span>';
+      ul.appendChild(li);
+    });
+    $('stats').appendChild(ul);
+  }
+
+  // --- Into the Machine: five nodes on a vine, lit and glowing as far as players cleared each layer ---------------
+  function machine(d) {
+    var days = d.days || 30, md = d.modes || {};
+    var s = section('machine', nm('Into the Machine'), tp('machine_cap', days, { n: days }));
+    var rows = LAYERS.map(function (l, i) { return +find(d.journey, 'layer', i + 1).winners || 0; });
+    var top = Math.max.apply(null, rows.concat([1])), any = ((md.journey || {}).games > 0) || rows.some(function (v) { return v > 0; });
+    if (!any) { invite(s, 'journey'); return; }
+    var lit = -1; rows.forEach(function (v, i) { if (v > 0) lit = i; });
+    var box = div('machine', null, s);
+    // The vine between the nodes, wavy; lit as far as the last layer anyone cleared. One drawing across, one climbing.
+    [['h', 1000, 40], ['v', 40, 1000]].forEach(function (o) {
+      var svg = el('svg', { class: 'mv ' + o[0], viewBox: '0 0 ' + o[1] + ' ' + o[2], preserveAspectRatio: 'none', 'aria-hidden': 'true', focusable: 'false' }, box);
+      for (var i = 0; i < 4; i++) {
+        var col = hex(LAYERS[i][1]), on = i < lit, pts = [];
+        for (var q = 0; q <= 8; q++) {
+          var u = q / 8, a = 100 + 200 * i + 200 * u, w = Math.sin((i * 8 + q) * 0.9) * (o[0] === 'h' ? 6 : 2.5);
+          pts.push(o[0] === 'h' ? [a, 20 + w] : [20 + w, a]);
+        }
+        var dd = smooth(pts);
+        el('path', { d: dd, fill: 'none', stroke: rgb(col, on ? 0.2 : 0.06), 'stroke-width': 9, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }, svg);
+        el('path', { d: dd, fill: 'none', stroke: rgb(col, on ? 0.75 : 0.25), 'stroke-width': 2.4, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }, svg);
+      }
+    });
+    var ol = document.createElement('ol'); ol.className = 'rungs'; box.appendChild(ol);
+    LAYERS.forEach(function (l, i) {
+      var v = rows[i], on = v > 0, li = document.createElement('li');
+      li.className = 'rung' + (on ? ' lit' : ''); li.style.setProperty('--c', trip(hex(l[1]))); li.style.setProperty('--f', (on ? Math.sqrt(v / top) : 0).toFixed(2));
+      li.innerHTML = '<span class="node" style="--d:' + (0.1 + i * 0.15).toFixed(2) + 's" aria-hidden="true"></span><span class="k lab">' + esc(t('layer_k', { n: i + 1 })) + '</span><span class="nm">' + esc(nm(l[0])) + '</span>' +
+        '<span class="ct">' + (on ? num(v) : esc(t('not_yet'))) + '</span>';
+      ol.appendChild(li);
+    });
+  }
+
+  // --- Duel: a card for each Pruner level, its share of games won as a bar in the level's colour -------------------
+  function duel(d) {
+    var s = section('duel', nm('Duel'), t('duel_cap')), md = d.modes || {};
+    var any = ((md.duel || {}).games > 0); for (var i = 0; i < 5; i++) any = any || (+find(d.duel, 'level', i + 1).games > 0);
+    if (!any) { invite(s, 'duel'); return; }
+    var ul = document.createElement('ul'); ul.className = 'cards duel'; s.appendChild(ul);
+    PRUNERS.forEach(function (p, i) {
+      var e = find(d.duel, 'level', i + 1), games = +e.games || 0, wins = +e.wins || 0, share = games ? Math.min(1, wins / games) : 0;
+      var li = document.createElement('li'); li.className = 'card'; li.style.setProperty('--c', trip(hex(p[1])));
+      li.innerHTML = '<span class="lab">' + esc(t('level_k', { n: i + 1 })) + '</span><span class="nm">' + esc(nm(p[0])) + '</span>' +
+        '<div class="track" aria-hidden="true"><span class="fill" style="width:' + (share * 100).toFixed(1) + '%;--d:' + (0.1 + i * 0.12).toFixed(2) + 's"></span></div>' +
+        '<span class="sm">' + esc(games ? t('won_pct', { p: pct(wins, games) }) : t('no_games_lvl')) + '</span>';
+      ul.appendChild(li);
+    });
+  }
+
+  // --- Blackout and One Song: cards of a caps label, a big number and a line --------------------------------------
+  function statCards(parent, cls, mode, items) {
+    var ul = document.createElement('ul'); ul.className = 'cards ' + cls; parent.appendChild(ul);
+    items.forEach(function (it) {
+      var li = document.createElement('li'); li.className = 'card'; li.style.setProperty('--c', trip(C[mode]));
+      li.innerHTML = '<span class="lab">' + esc(it[0]) + '</span><b>' + it[1] + '</b><span class="sm">' + it[2] + '</span>';
+      ul.appendChild(li);
+    });
+  }
+  function blackout(d) {
+    var s = section('blackout', nm('Blackout'), t('bo_line')), bm = (d.modes || {}).blackout || {}, bo = d.blackout || {};
+    if (!(bm.games > 0)) { invite(s, 'blackout'); return; }
+    statCards(s, 'stat', 'blackout', [
+      [t('bo_lights'), num(bo.lastLight || 0), esc(t('bo_won'))],
+      [t('hero_games'), num(bm.games || 0), '&nbsp;'],
+      [t('avg_place'), esc(ord(bo.avgPlace)), esc(t('of_100'))],
+      [t('best_place'), esc(ord(bo.best)), esc(t('of_100'))],
+    ]);
+  }
+  function onesong(d) {
+    var s = section('onesong', nm('One Song'), t('os_cap')), md = d.modes || {};
+    var g = ((md.onesong || {}).games || 0) + ((md.songday || {}).games || 0);
+    if (!(g > 0)) { invite(s, 'onesong'); return; }
+    statCards(s, 'songs', 'onesong', [['onesong', t('os_any')], ['songday', t('os_day')]].map(function (m) {
+      var v = md[m[0]] || {};
+      return [m[1], num(v.games || 0), esc(hrs(v.seconds)) + ' · ' + esc(tp('players_n', v.players || 0, { n: n(v.players || 0) }))];
+    }));
+  }
+
+  // --- World: a field of seeds, a flower where people play ---------------------------------------------------------
+  var resizers = [];
+  function world(d) {
+    var cs = (d.countries || []).filter(function (c) { return /^[A-Z]{2}$/.test(c.k) && c.players > 0; });
+    var s = section('world', nm('World'), cs.length ? tp('world_line', cs.length, { n: n(cs.length) }) : t('world_none'));
+    var box = div('mapbox', null, s), cv = document.createElement('canvas'), svg = el('svg', { role: 'img' });
+    box.appendChild(cv); box.appendChild(svg);
+    cs.sort(function (a, b) { return b.players - a.players || (a.k < b.k ? -1 : 1); });
+    var top = cs.length ? cs[0].players : 1;
+    // Projection: equirectangular over the seed grid, 0..1000 wide.
+    var VW = 1000, VH = Math.round(VW * WORLD.rows * WORLD.step / 360);
+    var px = function (lon) { return (lon - WORLD.lon0) / 360 * VW; }, py = function (lat) { return (WORLD.lat0 - lat) / (WORLD.rows * WORLD.step) * VH; };
+    var place = cs.map(function (c) { var p = WORLD.points[c.k]; return p ? { c: c, x: px(p[0]), y: py(p[1]), lon: p[0] } : null; }).filter(Boolean);
+    // Hot (west) to cold (east), as in the game.
+    var colOf = function (f) { return ramp((f.lon + 170) / 340); };
+    var rOf = function (f) { return 3.5 + 12 * Math.log(1 + f.c.players) / Math.log(1 + top); };
+    svg.setAttribute('viewBox', '0 0 ' + VW + ' ' + VH); box.style.aspectRatio = VW + ' / ' + VH;
+    svg.setAttribute('aria-label', cs.length ? t(cs.length > 5 ? 'aria_map_more' : 'aria_map', { list: cs.slice(0, 5).map(function (c) { return country(c.k) + ' ' + few(c.players); }).join(', ') }) : t('aria_map_empty'));
+    function seeds() {
+      var r = box.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.max(1, Math.round(r.width)), H = Math.round(W * VH / VW);
+      cv.width = W * dpr; cv.height = H * dpr; var g = cv.getContext('2d'); g.setTransform(dpr * W / VW, 0, 0, dpr * H / VH, 0, 0);
+      var cw = VW / WORLD.cols, chh = VH / WORLD.rows, dot = Math.max(0.9, cw * 0.2) * Math.max(1, 560 / W) * 0.9;
+      for (var row = 0; row < WORLD.rows; row++) {
+        var line = WORLD.land[row], off = row % 2 ? 0.5 : 0;
+        for (var c = 0; c < line.length * 4; c++) {
+          if (!((parseInt(line[c >> 2], 16) >> (3 - (c & 3))) & 1)) continue;
+          var x = (c + off + 0.5) * cw, y = (row + 0.5) * chh, lift = 0;
+          for (var i = 0; i < place.length; i++) { var dx = place[i].x - x, dy = place[i].y - y, rr = rOf(place[i]) * 3.2; var q = 1 - (dx * dx + dy * dy) / (rr * rr); if (q > lift) lift = q; }
+          var base = ramp(x / VW);
+          g.fillStyle = rgb(tint(base, 0.6 - 0.3 * lift), 0.3 + 0.5 * lift);
+          g.beginPath(); g.arc(x, y, dot * (1 + 0.6 * lift), 0, 6.2832); g.fill();
+        }
+      }
+    }
+    function flowers() {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      // Smallest on top so every flower can be reached.
+      place.slice().reverse().forEach(function (f) {
+        var col = colOf(f), r = rOf(f), g = el('g', { class: 'fl', 'data-k': f.c.k }, svg);
+        var pg = el('g', { class: 'pop', style: '--d:' + (0.2 + 0.9 * Math.random()).toFixed(2) + 's' }, g);
+        if (f.c.today) el('circle', { cx: f1(f.x), cy: f1(f.y), r: f1(r * 1.25), fill: 'none', stroke: rgb(col, 0.7), 'stroke-width': 1.2, class: 'pulse', style: '--d:' + (Math.random() * 2).toFixed(2) + 's' }, pg);
+        bloom(svg, pg, f.x, f.y, r, col, 1, f.c.players >= 3 ? 5 + (f.c.players > top * 0.3 ? 1 : 0) : 4, (f.x % 7) / 7);
+        el('circle', { cx: f1(f.x), cy: f1(f.y), r: Math.max(12, r * 1.4), fill: 'transparent' }, g);
+        f.g = g;
+        g.addEventListener('pointerenter', function (e) { show(f, e.clientX, e.clientY); });
+        g.addEventListener('pointerdown', function (e) { show(f, e.clientX, e.clientY); });
+        g.addEventListener('pointerleave', function () { show(null); });
+      });
+    }
+    var lit = null;
+    function show(f, cx, cy) {
+      if (lit && lit.li) lit.li.classList.remove('on');
+      lit = f;
+      if (!f) { tip(null); return; }
+      if (f.li) f.li.classList.add('on');
+      if (cx == null) { var r = f.g.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height * 0.2; }
+      tip('<b>' + esc(country(f.c.k)) + '</b>' + (f.c.players < 3 ? t('few_players') : tp('players_n', f.c.players, { n: tn(n(f.c.players)) })) + (f.c.today ? ' <span>· ' + t('today_n', { n: f.c.today < 3 ? t('few') : tn(n(f.c.today)) }) + '</span>' : ''), cx, cy, colOf(f));
+    }
+    // The list: countries with three players or more (the top ten, or all), the rest merged into one line.
+    var ul = document.createElement('ol'), all = false; ul.className = 'places-list'; s.appendChild(ul);
+    var moreBtn = document.createElement('button'); moreBtn.type = 'button'; moreBtn.className = 'pill quiet'; s.appendChild(moreBtn);
+    function list() {
+      ul.innerHTML = '';
+      var named = cs.filter(function (c) { return c.players >= 3; }), small = cs.length - named.length, shown = all ? named : named.slice(0, 10);
+      shown.forEach(function (c, i) {
+        var f = place.filter(function (p) { return p.c === c; })[0], col = f ? colOf(f) : [163, 174, 208];
+        var li = document.createElement('li'); li.tabIndex = 0; li.style.setProperty('--c', rgb(tint(col, 0.3))); li.style.setProperty('--a', (0.45 + 0.55 * Math.sqrt(c.players / top)).toFixed(2));
+        li.innerHTML = '<span class="rk">' + (i + 1) + '</span><span class="dot"></span><span class="nm">' + esc(country(c.k)) + '</span><span class="ct">' + tn(n(c.players)) + '</span>';
+        if (f) { f.li = li; var on = function () { show(f); }; li.addEventListener('pointerenter', on); li.addEventListener('focus', on); li.addEventListener('pointerleave', function () { show(null); }); li.addEventListener('blur', function () { show(null); }); }
+        ul.appendChild(li);
+      });
+      if (small > 0 && (all || named.length <= 10)) { var li2 = document.createElement('li'); li2.style.setProperty('--c', 'rgb(163,174,208)'); li2.style.setProperty('--a', '.4'); li2.innerHTML = '<span class="rk"></span><span class="dot"></span><span class="nm">' + tp('more_countries', small, { n: n(small) }) + '</span><span class="ct">' + t('few_each') + '</span>'; ul.appendChild(li2); }
+      moreBtn.hidden = named.length <= 10;
+      moreBtn.setAttribute('aria-expanded', all ? 'true' : 'false');
+      moreBtn.textContent = all ? t('show_top') : tp('show_all', cs.length, { n: n(cs.length) });
+      if (!cs.length) { ul.innerHTML = '<li><span class="nm" style="color:var(--dim)">' + t('nobody') + '</span></li>'; }
+    }
+    moreBtn.addEventListener('click', function () { all = !all; list(); });
+    seeds(); flowers(); list();
+    resizers.push(seeds);
+  }
+
+  // --- Devices: a card each, its share as a bar in its colour ------------------------------------------------------
+  function devices(d) {
+    var ps = (d.platforms || []).filter(function (p) { return p.players > 0; }).sort(function (a, b) { return b.players - a.players; });
+    var total = ps.reduce(function (s, p) { return s + p.players; }, 0), maxP = ps.length ? ps[0].players : 1;
+    var s = section('devices', nm('Devices'), '');
+    if (!ps.length) { div('note', esc(t('dev_none')), s); return; }
+    var ul = document.createElement('ul'); ul.className = 'cards dev'; s.appendChild(ul);
+    ps.forEach(function (p, i) {
+      var pg = platGlyph(p.k), li = document.createElement('li'); li.className = 'card'; li.style.setProperty('--c', trip(tint(pg.col, 0.2)));
+      li.appendChild(pg.svg);
+      li.insertAdjacentHTML('beforeend', '<span class="nm">' + esc(pg.name) + '</span><b>' + num(p.players) + '</b>' +
+        '<div class="track" aria-hidden="true"><span class="fill" style="width:' + (100 * p.players / maxP).toFixed(1) + '%;--d:' + (0.1 + i * 0.1).toFixed(2) + 's"></span></div>' +
+        '<span class="sm">' + esc(t('of_players', { p: pct(p.players, total) })) + '</span>');
+      ul.appendChild(li);
+    });
+    var vs = (d.versions || []).slice(0, 4);
+    if (vs.length) div('vers', esc(t('versions')) + ': ' + vs.map(function (x) { return '<span>' + esc(x.k) + '<b>' + tn(n(x.players)) + '</b></span>'; }).join(''), s);
+  }
+
+  // --- States -----------------------------------------------------------------------------------------------------
+  function budSVG(col) {
+    var s = el('svg', { viewBox: '-40 -40 80 80', 'aria-hidden': 'true' });
+    el('circle', { cx: 0, cy: 0, r: 34, fill: radial(s, rgb(col), 0.35), class: 'breathe' }, s);
+    el('path', { d: 'M0 36 C-4 24 4 14 0 4', fill: 'none', stroke: rgb(C.leaf), 'stroke-width': 2, 'stroke-linecap': 'round' }, s);
+    el('path', { d: 'M0 -20 C10 -12 9 2 0 6 C-9 2 -10 -12 0 -20Z', fill: rgb(col, 0.2), stroke: rgb(col), 'stroke-width': 1.8, class: 'breathe' }, s);
+    return s;
+  }
+  function state(lines, col, retry) {
+    var box = $('state'); box.innerHTML = ''; box.hidden = !lines;
+    if (!lines) return;
+    box.appendChild(budSVG(col || COLD));
+    lines.forEach(function (l) { var p = document.createElement('p'); p.textContent = l; box.appendChild(p); });
+    if (retry) { var b = document.createElement('button'); b.type = 'button'; b.className = 'pill'; b.textContent = t('try_again'); b.addEventListener('click', retry); box.appendChild(b); }
+  }
+  function kicker(days) { $('k1').textContent = t('kick1'); $('k2').textContent = tp('kick2', days, { n: days }); }
+  function stamp(d, cachedAt) {
+    var tm = d.now || Date.now(), mins = Math.max(0, Math.round((Date.now() - tm) / 60000));
+    $('stamp').textContent = DEMO ? '' : cachedAt ? t('stamp_offline', { d: new Date(tm).toLocaleString(LOC, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }) : t('stamp_upd', { t: mins < 1 ? t('just_now') : t('mins_ago', { n: mins }) });
+  }
+
+  function render(d, cachedAt) {
+    var box = $('stats'); box.innerHTML = ''; resizers = []; counts = [];
+    state(null); box.hidden = false;  // shown first: the map measures its width
+    kicker(d.days || 30);
+    overview(d); machine(d); duel(d); blackout(d); onesong(d); world(d); devices(d);
+    stamp(d, cachedAt); runCounts(box);
+    // A link straight to a section (b100mgame.com/stats/#world) lands on it once the page is built.
+    if (location.hash && document.getElementById(location.hash.slice(1))) document.getElementById(location.hash.slice(1)).scrollIntoView();
+  }
+  var rz = 0;
+  window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { resizers.forEach(function (f) { f(); }); }, 150); });
+
+  // --- Example numbers (?demo=1): plausible, fixed, and never sent anywhere ---------------------------------------
+  function demo() {
+    var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    var now = Date.UTC(2026, 10, 19, 20, 0), last = 0;
+    for (var i = 29; i >= 0; i--) {
+      var dt = new Date(now - i * 864e5), wk = dt.getUTCDay(), base = 70 + (29 - i) * 4.6 + (wk === 0 || wk === 6 ? 38 : 0) + rnd() * 26;
+      if (i === 9) base *= 1.7;  // a day someone shared it
+      last = Math.round(base);
+    }
+    var cc = [['US', 640], ['BR', 312], ['DE', 258], ['GB', 231], ['JP', 214], ['FR', 168], ['CA', 157], ['MX', 139], ['KR', 121], ['ES', 108], ['IT', 97], ['PL', 91], ['AU', 86], ['PH', 79], ['IN', 74], ['NL', 63], ['SE', 51], ['ID', 49], ['AR', 47], ['TR', 43], ['CL', 37], ['CO', 33], ['PT', 29], ['BE', 27], ['NZ', 24], ['NO', 21], ['FI', 19], ['TW', 18], ['ZA', 16], ['UA', 14], ['CZ', 13], ['SG', 12], ['IE', 11], ['PE', 9], ['VN', 8], ['TH', 7], ['EG', 6], ['MA', 5], ['NG', 4], ['KE', 3], ['IS', 2], ['MN', 2], ['UY', 2], ['FJ', 1], ['NP', 1], ['GH', 1]];
+    var countries = cc.map(function (c) { return { k: c[0], players: c[1], today: rnd() < 0.55 ? Math.max(1, Math.round(c[1] * (0.05 + rnd() * 0.06))) : 0 }; });
+    var empty = params.get('demo') === '1' && params.get('empty') === '1';  // ?demo=1&empty=1: modes nobody has played
+    var jr = [[1, 4120, 2210, 1244], [2, 2615, 1180, 722], [3, 1602, 610, 411], [4, 905, 290, 204], [5, 570, 151, 96]], dl = [[1, 1490, 1310, 702], [2, 1702, 1104, 655], [3, 1455, 640, 391], [4, 1018, 289, 180], [5, 675, 59, 41]];
+    return {
+      ok: true, demo: true, now: now, days: 30,
+      totals: { players: 5214, today: last, week: 1183, month: 3268, games: 61840, seconds: 17950000 },
+      modes: empty ? {} : {
+        journey: { games: 9812, players: 1904, seconds: 2950000, wins: 3871 },
+        duel: { games: 6340, players: 1351, seconds: 1460000, wins: 3402 },
+        blackout: { games: 3118, players: 874, seconds: 1210000, wins: 142 },
+        onesong: { games: 4207, players: 1102, seconds: 790000, wins: 0 },
+        songday: { games: 1830, players: 642, seconds: 345000, wins: 0 },
+      },
+      journey: jr.map(function (r) { return { layer: r[0], games: empty ? 0 : r[1], wins: empty ? 0 : r[2], winners: empty ? 0 : r[3] }; }),
+      duel: dl.map(function (r) { return { level: r[0], games: empty ? 0 : r[1], wins: empty ? 0 : r[2], winners: empty ? 0 : r[3] }; }),
+      blackout: empty ? {} : { lastLight: 142, avgPlace: 31, best: 1 },
+      countries: countries,
+      platforms: [{ k: 'web', players: 1984 }, { k: 'windows', players: 822 }, { k: 'android', players: 541 }, { k: 'ios', players: 388 }, { k: 'macos', players: 163 }, { k: 'linux', players: 92 }],
+      versions: [{ k: '0.4.2', players: 2410 }, { k: '0.4.1', players: 902 }, { k: '0.4.0', players: 418 }, { k: '0.3.9', players: 160 }],
+    };
+  }
+
+  // --- Load -------------------------------------------------------------------------------------------------------
+  kicker(30);
+  var api = (window.B100M_API || '').replace(/\/+$/, '');
+  var q = params.get('api');
+  if (q && /^(https:\/\/|http:\/\/(127\.0\.0\.1|localhost)(:\d+)?)/.test(q)) api = q.replace(/\/+$/, '');
+  if (DEMO) { $('demo').hidden = false; render(demo()); return; }
+  if (!api) { state([t('soon1'), t('soon2')], MID); return; }
+  var KEY = 'b100m-stats-v1', cached = null;
+  try { cached = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  function load() {
+    if (cached && cached.data) render(cached.data); else state([t('counting')], COLD);
+    fetch(api + '/stats?days=30', { mode: 'cors', credentials: 'omit' })
+      .then(function (r) { if (r.status === 429) throw new Error('busy'); if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error('bad');
+        try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), data: data })); } catch (e) {}
+        cached = null; render(data);
+      })
+      .catch(function (e) {
+        if (cached && cached.data) { stamp(cached.data, cached.at); return; }
+        state([e && e.message === 'busy' ? t('busy') : t('unreachable'), t('check')], HOT, function () { load(); });
+      });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

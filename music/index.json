@@ -1,0 +1,487 @@
+{
+ "afrohouse/boot": {
+  "hash": "4c3db53b7e24",
+  "size": 6365776,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "afrohouse/core": {
+  "hash": "8336e76a8a1f",
+  "size": 6472848,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "afrohouse/firewall": {
+  "hash": "d419a1023412",
+  "size": 5966176,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "afrohouse/sea": {
+  "hash": "1c21f3e43ef4",
+  "size": 5487568,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "afrohouse/stage1": {
+  "hash": "6eeb488e16f5",
+  "size": 6414428,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "afrohouse/theme1": {
+  "hash": "dca2ac1108ac",
+  "size": 5858716,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "afrohouse/theme2": {
+  "hash": "7688527df661",
+  "size": 6441564,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "ambient/boot": {
+  "hash": "8aca9803a2ee",
+  "size": 6298284,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "ambient/core": {
+  "hash": "afac11e059c0",
+  "size": 5738700,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "ambient/firewall": {
+  "hash": "fe5fb6cabffa",
+  "size": 5585404,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "ambient/sea": {
+  "hash": "18223b3ed064",
+  "size": 5855076,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "ambient/stage1": {
+  "hash": "f59ec0e6c6f3",
+  "size": 5854928,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "ambient/theme1": {
+  "hash": "f8cdfa19379e",
+  "size": 5936976,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "ambient/theme2": {
+  "hash": "1eeaa621913f",
+  "size": 5996080,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "chillwave/boot": {
+  "hash": "73e66a09cb65",
+  "size": 6207888,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "chillwave/core": {
+  "hash": "c837928ae531",
+  "size": 6430032,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "chillwave/firewall": {
+  "hash": "36d2362c63f0",
+  "size": 5030016,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "chillwave/sea": {
+  "hash": "59342608750f",
+  "size": 5777392,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "chillwave/stage1": {
+  "hash": "1b4ba3319f4e",
+  "size": 6083932,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "chillwave/theme1": {
+  "hash": "dc16c2628024",
+  "size": 5974492,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "chillwave/theme2": {
+  "hash": "0529c8cecc02",
+  "size": 6029980,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "futurebass/boot": {
+  "hash": "d6334f04d523",
+  "size": 5549236,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "futurebass/core": {
+  "hash": "fa3ae1d921a2",
+  "size": 5775412,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "futurebass/firewall": {
+  "hash": "f4fd17ba8d77",
+  "size": 6481540,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "futurebass/sea": {
+  "hash": "2af966ad2e66",
+  "size": 5943824,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "futurebass/stage1": {
+  "hash": "ac1d82960a8a",
+  "size": 6544320,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "futurebass/theme1": {
+  "hash": "a9c40d0fea56",
+  "size": 5968448,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "futurebass/theme2": {
+  "hash": "f1d323387b5c",
+  "size": 6557344,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "house/boot": {
+  "hash": "2880e6a3dccf",
+  "size": 5782700,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "house/core": {
+  "hash": "ff97fbcad548",
+  "size": 6277228,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "house/firewall": {
+  "hash": "c1277d5166c3",
+  "size": 6444092,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "house/sea": {
+  "hash": "29546aab4340",
+  "size": 5836484,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "house/stage1": {
+  "hash": "b3eb20fb64f6",
+  "size": 4223956,
+  "stems": [
+   "bass",
+   "drums"
+  ]
+ },
+ "liquid/boot": {
+  "hash": "ca56cbfd75a4",
+  "size": 5572708,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "liquid/core": {
+  "hash": "823f98e29177",
+  "size": 4816132,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "liquid/firewall": {
+  "hash": "fbe82a1fabae",
+  "size": 5881908,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "liquid/sea": {
+  "hash": "6ac00690cc01",
+  "size": 5767264,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "liquid/stage1": {
+  "hash": "5b9df9a7ed7d",
+  "size": 5863824,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "liquid/theme1": {
+  "hash": "ad4d7ec5a53e",
+  "size": 4187696,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "liquid/theme2": {
+  "hash": "39898276f822",
+  "size": 3995568,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "synthwave/boot": {
+  "hash": "65ff030889cc",
+  "size": 5534640,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "synthwave/core": {
+  "hash": "2baafe1b99eb",
+  "size": 6451088,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "synthwave/firewall": {
+  "hash": "3465a6c6c1cf",
+  "size": 6272064,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "synthwave/sea": {
+  "hash": "8d028a5a0de1",
+  "size": 6092656,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "synthwave/stage1": {
+  "hash": "f8d26004e38b",
+  "size": 6679548,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "synthwave/theme1": {
+  "hash": "9f948fc9264e",
+  "size": 5823132,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "synthwave/theme2": {
+  "hash": "d54a36f155b9",
+  "size": 5836380,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "techno/boot": {
+  "hash": "09ea49b38162",
+  "size": 6155108,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "techno/core": {
+  "hash": "2043032579c4",
+  "size": 6261092,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "techno/firewall": {
+  "hash": "1e10a163b3a4",
+  "size": 5799028,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "techno/sea": {
+  "hash": "24bd29cd37d9",
+  "size": 6159168,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "techno/stage1": {
+  "hash": "859f0c6d58f9",
+  "size": 5978992,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "techno/theme1": {
+  "hash": "145563ba89b5",
+  "size": 5633296,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ },
+ "techno/theme2": {
+  "hash": "503df88ed368",
+  "size": 6042384,
+  "stems": [
+   "bass",
+   "drums",
+   "pads"
+  ]
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "biggest_match": 100,
+ "campaign_layers": 5,
+ "daily_seed_puzzles": 3,
+ "herbarium_flowers": 52,
+ "languages": 5,
+ "modes": 18,
+ "music_styles": 8,
+ "pruner_levels": 5,
+ "seed_puzzles": 30,
+ "solo_modes": 9,
+ "version": "0.9.21",
+ "versus_modes": 9
+}

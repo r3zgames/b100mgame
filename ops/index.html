@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>B100M health</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#05060c">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="../index.icon.png">
+<!-- The owner's health dashboard. Published at b100mgame.com/ops/ with the rest of tools/site by tools/publish_web.sh;
+     it reads the Worker's address from ../stats/config.js and calls GET /admin/ops (server/src/ops.js) with the
+     ADMIN_TOKEN in an Authorization header, never in a URL. The page holds no data itself: without the token it shows
+     only the sign-in. The token is kept in this browser's localStorage until "Forget" is pressed.
+     ?demo=1 shows made-up numbers (clearly marked) for previews; it never calls the Worker.
+     ?api=http://127.0.0.1:8787 (local addresses only) for `npm run dev` in server/. -->
+<script src="../stats/config.js"></script>
+<style>
+@font-face { font-family: "Urbanist"; src: url("../stats/urbanist.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+:root {
+  /* Three text colours: main, secondary, and one amber for status. Everything else is light, not text. */
+  --ink: #e0ebff; --dim: #a3aed0; --amber: #ffb84d;
+  --bg: #05060c; --pane: rgba(16, 14, 38, .62);
+  --hot: #ff3d4d; --mid: #e659ff; --cold: #4099ff; --leaf: #59ffbf; --duel: #ff4f8c;
+  color-scheme: dark;
+  font-size: clamp(15px, calc(.3vw + 12.4px), 19px);
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); color: var(--ink); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; overflow-x: hidden; background: var(--bg);
+  font-family: "Urbanist", system-ui, sans-serif; font-weight: 600; line-height: 1.4; letter-spacing: .01em;
+  padding: env(safe-area-inset-top) 0 calc(2.5rem + env(safe-area-inset-bottom));
+}
+/* The garden behind the glass: soft, slow blooms of light. */
+.sky { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.sky i { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; }
+.sky i:nth-child(1) { width: 46rem; height: 34rem; left: -14rem; top: -12rem; background: radial-gradient(closest-side, rgba(150, 30, 140, .7), transparent); }
+.sky i:nth-child(2) { width: 42rem; height: 32rem; right: -16rem; top: 8rem; background: radial-gradient(closest-side, rgba(20, 90, 170, .7), transparent); }
+.sky i:nth-child(3) { width: 50rem; height: 30rem; left: 20%; bottom: -16rem; background: radial-gradient(closest-side, rgba(30, 150, 110, .45), transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  .sky i { animation: drift 38s ease-in-out infinite alternate; }
+  .sky i:nth-child(2) { animation-duration: 46s; animation-delay: -12s; }
+  .sky i:nth-child(3) { animation-duration: 54s; animation-delay: -20s; }
+  @keyframes drift { to { transform: translate(4rem, 3rem) scale(1.12); } }
+}
+.wrap { width: min(76rem, 100% - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right)); margin: 0 auto; }
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; padding: 0; }
+:focus-visible { outline: 2px solid var(--leaf); outline-offset: 3px; border-radius: .8rem; }
+.tn { font-variant-numeric: tabular-nums; }
+
+header { display: flex; align-items: center; justify-content: space-between; gap: .8rem 1.2rem; flex-wrap: wrap; padding: 1.4rem 0 1.1rem; }
+.brand { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+.bloom { flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #fff 0 12%, var(--mid) 30%, rgba(230, 89, 255, .25) 58%, transparent 72%); box-shadow: 0 0 1.6rem rgba(230, 89, 255, .55); }
+h1 { margin: 0; font-size: 1.55rem; font-weight: 750; letter-spacing: .01em; line-height: 1.1; text-shadow: 0 0 1.2rem rgba(230, 89, 255, .45); }
+h1 small { display: block; font-size: .56em; color: var(--dim); font-weight: 650; letter-spacing: .14em; text-transform: uppercase; text-shadow: none; margin-top: .2rem; }
+.bar { display: flex; align-items: center; gap: .4rem .6rem; flex-wrap: wrap; }
+.stamp { color: var(--dim); font-size: .85rem; }
+.stamp.warn, .warn { color: var(--amber); }
+.btn { padding: .45rem .95rem; border-radius: 1.2rem; background: rgba(160, 170, 255, .1); color: var(--ink); font-size: .88rem; box-shadow: inset 0 0 0 1px rgba(170, 180, 255, .14); }
+.btn:hover { background: rgba(160, 170, 255, .18); }
+.btn.quiet { background: none; color: var(--dim); box-shadow: none; }
+.demo { display: inline-block; color: var(--amber); font-size: .85rem; padding: .2rem .8rem; border-radius: 1rem; background: rgba(255, 184, 77, .12); }
+
+/* Panes: soft glowing glass, each a slightly different organic shape; columns, not a grid. */
+.panes { columns: 2 30rem; column-gap: 1.3rem; }
+.pane {
+  break-inside: avoid; display: inline-block; width: 100%; margin: 0 0 1.3rem; padding: 1.25rem 1.35rem 1.35rem; position: relative;
+  background: radial-gradient(120% 90% at 10% 0%, rgba(var(--g), .16), transparent 60%), var(--pane);
+  border-radius: 2.2rem 1.5rem 2.4rem 1.7rem / 1.8rem 2.3rem 1.6rem 2.2rem;
+  box-shadow: 0 0 2.6rem -1rem rgba(var(--g), .55), inset 0 0 0 1px rgba(var(--g), .16);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  --g: 89, 255, 191;
+}
+.pane:nth-child(3n+2) { border-radius: 1.6rem 2.4rem 1.7rem 2.3rem / 2.2rem 1.7rem 2.4rem 1.6rem; }
+.pane:nth-child(3n) { border-radius: 2.4rem 1.8rem 2.1rem 1.5rem / 1.6rem 2.4rem 1.9rem 2.3rem; }
+.pane.wide { column-span: all; display: block; }
+.g-leaf { --g: 89, 255, 191; } .g-mid { --g: 230, 89, 255; } .g-cold { --g: 64, 153, 255; } .g-hot { --g: 255, 79, 140; } .g-amber { --g: 255, 184, 77; }
+h2 { margin: 0; font-size: 1.12rem; font-weight: 750; display: flex; align-items: baseline; justify-content: space-between; gap: .4rem 1rem; flex-wrap: wrap; }
+h2 .cap { font-size: .8rem; font-weight: 600; }
+.cap { color: var(--dim); font-size: .85rem; }
+h3 { margin: 1.1rem 0 .45rem; font-size: .8rem; font-weight: 700; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; }
+
+/* Figures. */
+.figs { display: flex; flex-wrap: wrap; gap: .9rem 1.6rem; margin-top: .9rem; }
+.fig { min-width: 5.5rem; }
+.fig b { display: block; font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 750; line-height: 1.05; text-shadow: 0 0 .7em rgba(var(--g), .55); }
+.fig.big b { font-size: clamp(2.8rem, 10vw, 4.2rem); }
+.fig span { display: block; color: var(--dim); font-size: .85rem; margin-top: .2rem; }
+.fig em { font-style: normal; color: var(--dim); font-size: .5em; font-weight: 650; margin-left: .15em; }
+
+/* Range switch (24 h, 7 days, 30 days). */
+.seg { display: inline-flex; gap: .15rem; padding: .18rem; border-radius: 1.2rem; background: rgba(160, 170, 255, .08); }
+.seg button { padding: .22rem .65rem; border-radius: 1rem; font-size: .8rem; color: var(--dim); }
+.seg button[aria-pressed="true"] { color: var(--ink); background: rgba(var(--g), .2); box-shadow: 0 0 .8rem -0.2rem rgba(var(--g), .6); }
+
+/* Rows: a label, a soft glowing stem, a number. */
+.rows { display: flex; flex-direction: column; gap: .42rem; margin-top: .35rem; }
+.row { display: grid; grid-template-columns: minmax(5.5rem, 9rem) 1fr auto; align-items: center; gap: .7rem; font-size: .92rem; min-width: 0; }
+.row > span:first-child { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row > b { font-weight: 700; min-width: 2.6rem; text-align: right; }
+.stem { height: .5rem; border-radius: 1rem; background: rgba(160, 170, 255, .08); overflow: hidden; }
+.stem i { display: block; height: 100%; border-radius: 1rem; background: linear-gradient(90deg, rgba(var(--c, var(--g)), .35), rgba(var(--c, var(--g)), 1)); box-shadow: 0 0 .7rem rgba(var(--c, var(--g)), .8); min-width: .5rem; }
+.stem i.zero { min-width: 0; }
+/* Two-part stems: found vs gave up, people vs CPU. */
+.split { display: flex; height: .7rem; border-radius: 1rem; overflow: hidden; margin: .55rem 0 .35rem; background: rgba(160, 170, 255, .08); gap: 2px; }
+.split i { display: block; height: 100%; }
+.split i:first-child { background: linear-gradient(90deg, rgba(var(--a), .5), rgba(var(--a), 1)); box-shadow: 0 0 .8rem rgba(var(--a), .7); border-radius: 1rem 0 0 1rem; }
+.split i:last-child { background: rgba(var(--b), .55); border-radius: 0 1rem 1rem 0; }
+.legend { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; font-size: .85rem; color: var(--dim); }
+.legend b { color: var(--ink); }
+
+/* Histogram (waits, room sizes): rounded petals. */
+.hist { display: flex; align-items: flex-end; gap: .3rem; height: 4.6rem; margin-top: .5rem; }
+.hist div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .25rem; height: 100%; justify-content: flex-end; min-width: 0; }
+.hist i { display: block; width: 100%; max-width: 1.4rem; border-radius: 1rem 1rem .4rem .4rem; background: linear-gradient(0deg, rgba(var(--g), .3), rgba(var(--g), 1)); box-shadow: 0 0 .7rem rgba(var(--g), .6); min-height: 3px; }
+.hist i.mark { background: linear-gradient(0deg, rgba(255, 184, 77, .35), rgba(255, 184, 77, 1)); box-shadow: 0 0 .7rem rgba(255, 184, 77, .7); }
+.hist span { font-size: .66rem; color: var(--dim); white-space: nowrap; }
+
+/* Sparkline (requests by hour). */
+.spark { width: 100%; height: 5.4rem; display: block; margin-top: .6rem; overflow: visible; }
+
+/* Tables as flowing lines (no gridlines). */
+.list { display: flex; flex-direction: column; gap: .15rem; margin-top: .35rem; }
+.line { display: flex; align-items: baseline; gap: .4rem .8rem; padding: .35rem .2rem; border-radius: .9rem; font-size: .9rem; flex-wrap: wrap; }
+.line:nth-child(odd) { background: rgba(160, 170, 255, .045); }
+.line .k { flex: 1 1 7rem; min-width: 0; overflow-wrap: anywhere; }
+.line .n { display: flex; gap: .9rem; color: var(--dim); }
+.line .n b { color: var(--ink); font-weight: 700; }
+.line.head { color: var(--dim); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; background: none; }
+.n > * { min-width: 2.6rem; text-align: right; }
+
+/* Errors. */
+.err { padding: .55rem .2rem .6rem; border-radius: 1rem; display: grid; grid-template-columns: 2.6rem 1fr; gap: .1rem .7rem; }
+.err:nth-child(odd) { background: rgba(160, 170, 255, .045); }
+.err .r { grid-row: span 2; text-align: right; font-size: 1.15rem; font-weight: 750; text-shadow: 0 0 .6em rgba(var(--g), .6); }
+.err .m { font-size: .88rem; overflow-wrap: anywhere; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 500; }
+.err .meta { font-size: .78rem; color: var(--dim); display: flex; gap: .3rem .9rem; flex-wrap: wrap; }
+.err a { color: var(--ink); text-decoration-color: rgba(var(--g), .7); text-underline-offset: 3px; }
+.empty { color: var(--dim); font-size: .9rem; margin: .8rem 0 .2rem; }
+
+/* Sign-in. */
+.gate { max-width: 26rem; margin: 9vh auto 0; text-align: center; }
+.gate .pane { text-align: left; }
+.gate p { color: var(--dim); font-size: .92rem; margin: .5rem 0 1rem; }
+.gate input { width: 100%; padding: .75rem 1rem; border-radius: 1.2rem; border: 0; background: rgba(5, 6, 12, .7); box-shadow: inset 0 0 0 1px rgba(170, 180, 255, .22); font-size: 1rem; }
+.gate .btn { margin-top: .9rem; width: 100%; padding: .7rem; background: rgba(89, 255, 191, .16); box-shadow: 0 0 1.4rem -0.4rem rgba(89, 255, 191, .7), inset 0 0 0 1px rgba(89, 255, 191, .35); }
+.gate .msg { min-height: 1.3em; margin-top: .7rem; font-size: .88rem; }
+.hide { display: none !important; }
+@media (max-width: 34rem) {
+  .row { grid-template-columns: minmax(4.6rem, 6.4rem) 1fr auto; gap: .5rem; }
+  .pane { padding: 1.1rem 1.05rem 1.2rem; }
+  .n { gap: .6rem !important; }
+  .n > * { min-width: 2.1rem; }
+}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="bloom" aria-hidden="true"></div><h1>B100M health<small>Owner only · anonymous totals</small></h1></div>
+    <div class="bar" id="bar">
+      <span class="demo hide" id="demoTag">Made-up numbers · not live</span>
+      <span class="stamp tn" id="stamp" aria-live="polite"></span>
+      <button class="btn" id="refresh" type="button">Refresh</button>
+      <button class="btn quiet" id="forget" type="button">Forget token</button>
+    </div>
+  </header>
+
+  <section class="gate hide" id="gate" aria-labelledby="gateTitle">
+    <form class="pane g-leaf" id="gateForm" autocomplete="off">
+      <h2 id="gateTitle">Sign in</h2>
+      <p>Paste the Worker's admin token once. It stays on this device only (this browser's storage) and is sent in a header, never in a link.</p>
+      <label class="cap" for="token">Admin token</label>
+      <input id="token" type="password" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <button class="btn" type="submit">Open the dashboard</button>
+      <div class="msg warn" id="gateMsg" role="status"></div>
+    </form>
+  </section>
+
+  <main class="panes hide" id="panes"></main>
+</div>
+<script>
+(function () {
+  'use strict';
+  var KEY = 'b100m-ops-token', params = new URLSearchParams(location.search), DEMO = params.get('demo') === '1';
+  var $ = function (id) { return document.getElementById(id); };
+  // Only the configured Worker, or a local one for testing: a link can never send the token anywhere else.
+  var api = (window.B100M_API || '').replace(/\/+$/, '');
+  var q = params.get('api');
+  if (q && /^http:\/\/(127\.0\.0\.1|localhost)(:\d{1,5})?\/?$/.test(q)) api = q.replace(/\/+$/, '');
+  var range = { mm: 'd1', out: 'd1', health: 'd1' };
+  var data = null, timer = null, lastOk = 0;
+
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var fmt = function (n) { n = +n || 0; return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? (n / 1e3).toFixed(n >= 1e5 ? 0 : 1) + 'k' : n.toLocaleString('en-US'); };
+  var pct = function (a, b) { if (!b) return '–'; var v = a * 100 / b; return a && v < 1 ? '<1%' : Math.round(v) + '%'; };
+  var secs = function (s) { return s == null ? '–' : s < 0 ? '> 10 min' : s >= 60 ? '≤ ' + (s / 60) + ' min' : '≤ ' + s + ' s'; };
+  var ago = function (ms) { var s = Math.max(0, (Date.now() - ms) / 1000); return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; };
+  var RANGES = [['d1', '24 h'], ['d7', '7 d'], ['d30', '30 d']];
+  var seg = function (name, list) { return '<span class="seg" role="group" aria-label="Range">' + (list || RANGES).map(function (r) { return '<button type="button" data-seg="' + name + '" data-v="' + r[0] + '" aria-pressed="' + (range[name] === r[0]) + '">' + r[1] + '</button>'; }).join('') + '</span>'; };
+  var fig = function (n, label, big, unit) { return '<div class="fig' + (big ? ' big' : '') + '"><b class="tn">' + fmt(n) + (unit ? '<em>' + unit + '</em>' : '') + '</b><span>' + label + '</span></div>'; };
+  var rows = function (list, color) {
+    var max = Math.max.apply(null, list.map(function (r) { return r[1]; }).concat([1]));
+    return '<div class="rows">' + list.map(function (r) {
+      return '<div class="row"><span title="' + esc(r[0]) + '">' + esc(r[0]) + '</span><div class="stem" style="' + (r[2] || color ? '--c:' + (r[2] || color) : '') + '"><i class="' + (r[1] ? '' : 'zero') + '" style="width:' + (r[1] / max * 100).toFixed(1) + '%"></i></div><b class="tn">' + fmt(r[1]) + '</b></div>';
+    }).join('') + '</div>';
+  };
+  var split = function (a, b, la, lb, ca, cb) {
+    var t = a + b, w = t ? a / t * 100 : 50;
+    return '<div class="split" style="--a:' + ca + ';--b:' + cb + '"><i style="width:' + w.toFixed(1) + '%"></i><i style="width:' + (100 - w).toFixed(1) + '%"></i></div>'
+      + '<div class="legend"><span>' + la + ' <b class="tn">' + fmt(a) + '</b> · ' + pct(a, t) + '</span><span>' + lb + ' <b class="tn">' + fmt(b) + '</b></span></div>';
+  };
+  var C = { leaf: '89, 255, 191', mid: '230, 89, 255', cold: '64, 153, 255', hot: '255, 79, 140', amber: '255, 184, 77', dim: '163, 174, 208' };
+  var MODE = { journey: 'Into the Machine', blackout: 'Blackout', duel: 'Duel vs Pruner', onesong: 'One Song', songday: 'Song of the day', sprint: 'Budburst', sprintday: 'Budburst of the day',
+    endless: 'Endless', free: 'Free Garden', uproot: 'Uproot', storm: 'Pod Storm', ladder: 'Pruner Ladder', echo: 'Echo Duel', local: 'Two Players', online: 'Online 1v1', live: 'Live 100' };
+
+  function render(d) {
+    data = d;
+    var o = d.online, duel = o.duel, live = o.live;
+    var nowTotal = duel.queue + duel.players + live.waiting + live.people + live.watching;
+    var html = '';
+
+    // 1. Online now.
+    var byV = {};
+    Object.keys(duel.byVersion || {}).forEach(function (v) { (byV[v] = byV[v] || [0, 0])[0] += duel.byVersion[v].queue + duel.byVersion[v].rooms * 2; });
+    Object.keys(live.byVersion || {}).forEach(function (v) { (byV[v] = byV[v] || [0, 0])[1] += live.byVersion[v].waiting + live.byVersion[v].people; });
+    var vers = Object.keys(byV).sort().reverse();
+    html += '<section class="pane g-mid"><h2>Online now <span class="cap">asked of the lobbies</span></h2>'
+      + '<div class="figs">' + fig(nowTotal, 'people in online play', true) + '</div>'
+      + rows([['Duel queue', duel.queue, C.hot], ['Duel sets', duel.players, C.hot], ['Live lobbies', live.waiting, C.cold], ['Live 100 play', live.people, C.cold], ['Live watching', live.watching, C.dim]])
+      + '<div class="legend" style="margin-top:.7rem"><span>Duel rooms <b class="tn">' + fmt(duel.rooms) + '</b> (quick ' + fmt((duel.byKind || {}).quick || 0) + ' · friend ' + fmt((duel.byKind || {}).friend || 0) + ')</span>'
+      + '<span>Live rooms <b class="tn">' + fmt(live.rooms) + '</b> · filling ' + fmt(live.lobbies) + ' · wildflowers lit ' + fmt(live.bots) + '</span></div>'
+      + (vers.length ? '<h3>By game version</h3>' + '<div class="list">' + vers.map(function (v) { return '<div class="line"><span class="k">' + esc(v) + '</span><span class="n"><span>Duel <b class="tn">' + fmt(byV[v][0]) + '</b></span><span>Live <b class="tn">' + fmt(byV[v][1]) + '</b></span></span></div>'; }).join('') + '</div>' : '')
+      + (!o.known.duel || !o.known.live ? '<p class="cap warn">' + (!o.known.duel ? 'Duel lobby did not answer. ' : '') + (!o.known.live ? 'Live 100 lobby did not answer.' : '') + '</p>' : '')
+      + '<p class="cap">Rooms do not know the platform; see Games for platforms.</p></section>';
+
+    // 2. People.
+    html += '<section class="pane g-leaf"><h2>People <span class="cap">played a game of 20 s or more · maker left out</span></h2><div class="figs">'
+      + fig(d.players.today, 'today (Pacific)', true) + fig(d.players.week, 'last 7 days') + fig(d.players.month, 'last 30 days') + '</div></section>';
+
+    // 3. Matchmaking.
+    var m = d.matchmaking[range.mm], edges = d.matchmaking.waitEdges;
+    var labels = edges.map(function (e) { return e >= 60 ? (e / 60) + 'm' : e + 's'; }).concat(['more']);
+    var hmax = Math.max.apply(null, m.wait.concat([1]));
+    var medIdx = m.waitMedian == null ? -1 : m.waitMedian < 0 ? edges.length : edges.indexOf(m.waitMedian);
+    html += '<section class="pane g-hot"><h2>Matchmaking ' + seg('mm') + '</h2>'
+      + '<div class="figs">' + '<div class="fig"><b class="tn">' + secs(m.waitMedian) + '</b><span>median quick-match wait</span></div>' + '<div class="fig"><b class="tn">' + secs(m.waitP90) + '</b><span>p90 wait</span></div></div>'
+      + '<div class="hist" aria-label="Waits until a match was found">' + m.wait.map(function (n, i) { return '<div title="' + fmt(n) + ' players"><i class="' + (i === medIdx ? 'mark' : '') + '" style="height:' + (n / hmax * 100).toFixed(1) + '%"></i><span>' + labels[i] + '</span></div>'; }).join('') + '</div>'
+      + '<h3>Quick match</h3>' + split(m.found, m.gaveUp, 'Found', 'Gave up or cancelled', C.leaf, C.dim)
+      + (m.gaveUp ? '<p class="cap">Those who gave up waited ' + secs(m.gaveUpMedian) + ' (median).' + (m.busy ? ' <span class="warn">' + fmt(m.busy) + ' pairings failed: busy.</span>' : '') + '</p>' : '')
+      + '<h3>Friend codes</h3>' + split(m.codesJoined, Math.max(0, m.codesMade - m.codesJoined), 'Joined', 'Not joined', C.mid, C.dim)
+      + '<p class="cap">' + fmt(m.codesMade) + ' codes made · ' + fmt(m.codesUnused) + ' expired unused · ' + fmt(m.codesMissed) + ' wrong or full codes tried</p></section>';
+
+    // 4. Match outcomes.
+    var out = d.outcomes[range.out], du = out.duel, lv = out.live, rk = d.ranked;
+    var duelBad = du.desync + du.expired;
+    html += '<section class="pane g-cold"><h2>Match outcomes ' + seg('out') + '</h2>'
+      + '<h3>Online 1v1 sets</h3>' + rows([['Finished', du.final, C.leaf], ['Forfeit', du.forfeit, C.hot], ['Left', du.left, C.hot], ['Desync', du.desync, C.amber], ['Expired', du.expired, C.dim], ['Version mismatch', du.version, C.dim]])
+      + '<p class="cap">Started: quick ' + fmt(out.duelStarted.quick) + ' · friend ' + fmt(out.duelStarted.friend) + ' · rematches ' + fmt(out.rematches)
+      + (du.desync ? ' · <span class="warn">desync ' + pct(du.desync, du.final + du.forfeit + du.left + du.desync) + ' of sets</span>' : '') + '</p>'
+      + '<h3>Ranked, last 30 days</h3>' + split(rk.duel.verified || 0, rk.duel.rejected || 0, 'Duel verified', 'rejected', C.leaf, C.hot)
+      + '<div style="height:.5rem"></div>' + split(rk.live.verified || 0, rk.live.rejected || 0, 'Live verified', 'rejected', C.cold, C.hot)
+      + '<p class="cap">Waiting for inputs ' + fmt(rk.duel.open || 0) + ' · for the verifier ' + fmt((rk.duel.pending || 0) + (rk.live.pending || 0)) + ' · expired ' + fmt(rk.duel.expired || 0) + '</p>'
+      + '<p class="cap' + (rk.verifierWaiting && Date.now() - rk.verifierOldest > 3 * 3600e3 ? ' warn' : '') + '">Verifier queue (every board): ' + fmt(rk.verifierWaiting) + (rk.verifierWaiting ? ', oldest ' + ago(rk.verifierOldest) : '') + '</p>'
+      + '<h3>Live 100 rooms</h3>'
+      + '<div class="figs">' + fig(lv.ended, 'rooms played') + fig(lv.humansPerRoom, 'people a room') + fig(lv.botsPerRoom, 'wildflowers a room') + '</div>'
+      + split(lv.humans, lv.bots, 'People seats', 'Wildflower seats', C.cold, C.dim)
+      + '<p class="cap">' + (lv.early ? '<span class="warn">' + pct(lv.early, lv.ended) + ' ended early</span> (no person left lit)' : 'None ended early') + ' · ' + fmt(lv.unfilled) + ' never filled' + (lv.lost ? ' · <span class="warn">' + fmt(lv.lost) + ' lost mid-match</span>' : '') + '</p>'
+      + '<h3>People in a room</h3>' + (function () {
+        var mx = Math.max.apply(null, lv.sizes.map(function (s) { return s.rooms; }).concat([1])), lo = 1;
+        return '<div class="hist">' + lv.sizes.map(function (s) { var lab = s.upTo === lo ? String(lo) : lo + '–' + s.upTo; lo = s.upTo + 1; return '<div title="' + fmt(s.rooms) + ' rooms"><i style="height:' + (s.rooms / mx * 100).toFixed(1) + '%"></i><span>' + lab + '</span></div>'; }).join('') + '</div>';
+      })() + '</section>';
+
+    // 5. Games by mode, platforms, versions.
+    var g = d.games;
+    html += '<section class="pane g-amber"><h2>Games <span class="cap">people only</span></h2>'
+      + '<div class="list"><div class="line head"><span class="k">Mode</span><span class="n"><span>Today</span><span>7 d</span><span>30 d</span></span></div>'
+      + (g.modes.length ? g.modes.map(function (r) { return '<div class="line"><span class="k">' + esc(MODE[r.mode] || r.mode) + '</span><span class="n tn"><b>' + fmt(r.today) + '</b><span>' + fmt(r.week) + '</span><span>' + fmt(r.month) + '</span></span></div>'; }).join('') : '<div class="empty">No games yet.</div>') + '</div>'
+      + '<h3>Platforms, last 7 days</h3>' + rows(g.platforms.map(function (p) { return [p.k, p.players]; }), C.amber)
+      + '<h3>Latest versions in use, last 7 days</h3><div class="list"><div class="line head"><span class="k">Version</span><span class="n"><span>People</span><span>Games</span></span></div>'
+      + g.versions.map(function (v, i) { return '<div class="line"><span class="k">' + esc(v.v) + (i === 0 ? ' <span class="cap">newest</span>' : '') + '</span><span class="n tn"><b>' + fmt(v.players) + '</b><span>' + fmt(v.games) + '</span></span></div>'; }).join('') + '</div></section>';
+
+    // 6. Top errors.
+    html += '<section class="pane g-hot"><h2>Top errors <span class="cap">by reports, all time</span></h2>'
+      + (d.errors.length ? '<div class="list">' + d.errors.map(function (e) {
+        return '<div class="err"><span class="r tn">' + fmt(e.reports) + '</span><span class="m">' + esc(e.message) + '</span><span class="meta"><span>' + esc(e.kind) + '</span><span>×' + fmt(e.count) + '</span><span>since ' + esc(e.firstVersion || '?') + '</span><span>' + ago(e.lastAt) + '</span>'
+          + (e.issue ? '<a href="https://github.com/r3zgames/b100m/issues/' + (+e.issue) + '" rel="noopener noreferrer" target="_blank">#' + (+e.issue) + '</a>' : '<span class="warn">not filed yet</span>') + '</span></div>';
+      }).join('') + '</div>' : '<div class="empty">No error reports.</div>') + '</section>';
+
+    // 7. Worker health.
+    var hr = d.health[range.health], hours = d.health.hours;
+    var total = hr.reduce(function (s, r) { return s + r.all; }, 0), e5 = hr.reduce(function (s, r) { return s + r['5xx']; }, 0), e4 = hr.reduce(function (s, r) { return s + r['4xx']; }, 0), slow = hr.reduce(function (s, r) { return s + r['429']; }, 0);
+    html += '<section class="pane g-leaf"><h2>Worker health ' + seg('health', RANGES.slice(0, 2)) + '</h2>'
+      + '<div class="figs">' + fig(total, 'requests') + '<div class="fig"><b class="tn' + (e5 ? ' warn' : '') + '">' + fmt(e5) + '</b><span>5xx · ' + pct(e5, total) + '</span></div>' + fig(e4, '4xx') + fig(slow, '429 slow down') + '</div>'
+      + spark(hours)
+      + '<div class="list"><div class="line head"><span class="k">Route</span><span class="n"><span>All</span><span>4xx</span><span>429</span><span>5xx</span></span></div>'
+      + (hr.length ? hr.map(function (r) { return '<div class="line"><span class="k">' + esc(r.route) + '</span><span class="n tn"><b>' + fmt(r.all) + '</b><span>' + fmt(r['4xx']) + '</span><span>' + fmt(r['429']) + '</span><span' + (r['5xx'] ? ' class="warn"' : '') + '>' + fmt(r['5xx']) + '</span></span></div>'; }).join('') : '<div class="empty">No counts yet.</div>') + '</div>'
+      + '<p class="cap">Counted per Worker instance and written once a minute: close, not exact.' + (d.counters ? '' : ' <span class="warn">Counters are off: migration 0009 is not applied.</span>') + '</p></section>';
+
+    // 8. Synthetic checks: the scripted players' runs (server/synthetic/run.mjs), never part of the numbers above.
+    var sy = d.synthetic;
+    if (sy) {
+      var KIND = { quick: 'After deploy', full: 'Nightly', territories: 'Territories', scale: 'Scale', drills: 'Drills' };
+      var kinds = Object.keys(sy.last || {});
+      var sec = function (ms) { return ms == null ? '–' : ms >= 60000 ? (ms / 60000).toFixed(1) + ' min' : (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + ' s'; };
+      var sc = (sy.counters && sy.counters.d1) || {};
+      var sets = sy.rankedSets || {};
+      html += '<section class="pane g-cold"><h2>Synthetic checks <span class="cap">scripted players · never counted as people</span></h2>'
+        + (kinds.length ? kinds.map(function (k) {
+          var r = sy.last[k];
+          return '<h3>' + esc(KIND[k] || k) + ' · <span class="' + (r.ok ? '' : 'warn') + '">' + (r.ok ? 'pass' : 'FAIL') + '</span> · ' + ago(r.at) + ' · ' + sec(r.seconds * 1000) + '</h3>'
+            + '<div class="list">' + (r.checks || []).map(function (c) { return '<div class="line"><span class="k">' + esc(c.name) + (c.note ? ' <span class="cap">' + esc(c.note) + '</span>' : '') + '</span><span class="n tn"><span' + (c.ok ? '' : ' class="warn"') + '>' + (c.ok ? 'pass' : 'fail') + '</span><b>' + sec(c.ms) + '</b></span></div>'; }).join('') + '</div>';
+        }).join('') : '<div class="empty">No synthetic runs yet.</div>')
+        + '<h3>Last runs</h3><div class="list">' + (sy.runs || []).slice(0, 10).map(function (r) { return '<div class="line"><span class="k">' + esc(KIND[r.kind] || r.kind) + ' · ' + ago(r.at) + '</span><span class="n tn"><span' + (r.ok ? '' : ' class="warn"') + '>' + (r.ok ? 'pass' : 'fail') + '</span><b>' + sec(r.seconds * 1000) + '</b></span></div>'; }).join('') + '</div>'
+        + '<p class="cap">Last 24 h: ' + fmt((sc['duel.start.friend'] || 0) + (sc['duel.start.quick'] || 0)) + ' synthetic sets, ' + fmt(sc['live.end'] || 0) + ' Live rooms, ' + fmt(sc['duel.end.desync'] || 0) + ' desyncs (deliberate ones included). Ranked synthetic sets, 7 d: '
+        + (Object.keys(sets).length ? Object.keys(sets).map(function (k) { return esc(k) + ' ' + fmt(sets[k].n); }).join(' · ') : 'none') + '.</p></section>';
+    }
+
+    $('panes').innerHTML = html;
+    $('panes').classList.remove('hide');
+  }
+
+  // Requests per hour, last 24 h: a soft glowing line, 5xx as amber dots.
+  function spark(hours) {
+    if (!hours || !hours.length) return '';
+    var W = 300, H = 60, max = Math.max.apply(null, hours.map(function (h) { return h.n; }).concat([1]));
+    var pts = hours.map(function (h, i) { return [(i / (hours.length - 1) * W).toFixed(1), (H - 4 - h.n / max * (H - 10)).toFixed(1)]; });
+    var line = 'M' + pts.map(function (p) { return p.join(','); }).join(' L');
+    var area = line + ' L' + W + ',' + H + ' L0,' + H + ' Z';
+    var dots = hours.map(function (h, i) { return h.err ? '<circle cx="' + pts[i][0] + '" cy="' + pts[i][1] + '" r="3" fill="#ffb84d"><title>' + h.err + ' 5xx</title></circle>' : ''; }).join('');
+    return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Requests per hour, last 24 hours">'
+      + '<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(89,255,191)" stop-opacity=".35"/><stop offset="1" stop-color="rgb(89,255,191)" stop-opacity="0"/></linearGradient>'
+      + '<filter id="sb"><feGaussianBlur stdDeviation="2.2"/></filter></defs>'
+      + '<path d="' + area + '" fill="url(#sg)"/><path d="' + line + '" fill="none" stroke="rgb(89,255,191)" stroke-width="3" opacity=".6" filter="url(#sb)" vector-effect="non-scaling-stroke"/>'
+      + '<path d="' + line + '" fill="none" stroke="rgb(89,255,191)" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' + dots + '</svg>'
+      + '<div class="legend"><span>24 h ago</span><span>now</span></div>';
+  }
+
+  // Range switches.
+  $('panes').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-seg]');
+    if (!b || !data) return;
+    range[b.getAttribute('data-seg')] = b.getAttribute('data-v');
+    render(data);
+  });
+
+  // --- Loading -------------------------------------------------------------------------------------------------------
+  var token = function () { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } };
+  function gate(msg) {
+    $('panes').classList.add('hide'); $('bar').classList.add('hide'); $('gate').classList.remove('hide');
+    $('gateMsg').textContent = msg || '';
+    $('token').focus();
+  }
+  function stamp(text, warn) { $('stamp').textContent = text; $('stamp').classList.toggle('warn', !!warn); }
+  function load(fresh) {
+    if (DEMO) { render(demo()); lastOk = Date.now(); stamp('Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); return; }
+    if (!api) { gate('The Worker address is not set (stats/config.js).'); return; }
+    var t = token();
+    if (!t) { gate(''); return; }
+    stamp('Loading…');
+    fetch(api + '/admin/ops' + (fresh ? '?fresh=1' : ''), { headers: { Authorization: 'Bearer ' + t }, mode: 'cors', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 404) { try { localStorage.removeItem(KEY); } catch (e) {} gate(r.status === 401 ? 'That token was not accepted.' : 'The Worker has no admin token set.'); return null; }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (d) {
+        if (!d) return;
+        if (!d.ok) throw new Error('bad answer');
+        $('gate').classList.add('hide'); $('bar').classList.remove('hide');
+        render(d); lastOk = Date.now();
+        stamp('Updated ' + new Date(d.now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      })
+      .catch(function (e) { stamp((data ? 'Showing ' + ago(lastOk) + ' · ' : '') + 'could not load (' + e.message + ')', true); });
+  }
+  $('gateForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var v = $('token').value.trim();
+    if (v.length < 16) { $('gateMsg').textContent = 'That is too short to be the token.'; return; }
+    try { localStorage.setItem(KEY, v); } catch (e) { $('gateMsg').textContent = 'This browser will not store it (private mode?).'; return; }
+    $('token').value = '';
+    load(true);
+  });
+  $('refresh').addEventListener('click', function () { load(true); });
+  $('forget').addEventListener('click', function () { try { localStorage.removeItem(KEY); } catch (e) {} data = null; gate('Token forgotten on this device.'); });
+  // Every minute while the page is visible, and at once when it comes back.
+  function tick() { clearInterval(timer); timer = setInterval(function () { if (!document.hidden) load(false); }, 60000); }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && Date.now() - lastOk > 60000) load(false); });
+
+  // --- Made-up numbers (?demo=1): plausible, fixed, never sent anywhere ------------------------------------------------
+  function demo() {
+    var now = Date.now(), h = Math.floor(now / 3600e3);
+    var mm = function (k) { return { found: 412 * k, gaveUp: 57 * k, busy: 0, waitMedian: 10, waitP90: 45, wait: [38, 61, 96, 88, 54, 33, 20, 12, 6, 3, 1, 0, 0].map(function (n) { return n * k; }), gaveUpMedian: 30, codesMade: 96 * k, codesJoined: 81 * k, codesMissed: 7 * k, codesUnused: 11 * k }; };
+    var oc = function (k) { return { duel: { final: 371 * k, forfeit: 22 * k, left: 31 * k, desync: 2 * k, version: 4 * k, expired: 9 * k }, duelStarted: { quick: 412 * k, friend: 81 * k }, rematches: 133 * k,
+      live: { started: 64 * k, ended: 63 * k, early: 9 * k, lost: 0, unfilled: 3 * k, humans: 1490 * k, bots: 4810 * k, humansPerRoom: 23.7, botsPerRoom: 76.3, sizes: [4, 6, 9, 11, 14, 12, 6, 1].map(function (n, i) { return { upTo: [1, 2, 5, 10, 25, 50, 99, 100][i], rooms: n * k }; }) } }; };
+    var routes = function (k) { return [['events', 18200, 12, 3, 0], ['scores', 9400, 140, 0, 0], ['duel.queue', 3100, 2, 0, 0], ['duel.room', 2900, 18, 0, 1], ['live.join', 1700, 6, 4, 0], ['live.room', 1660, 4, 0, 0], ['stats', 1300, 0, 22, 0], ['submit', 980, 41, 2, 0], ['progress', 760, 3, 0, 0], ['errors', 410, 0, 0, 0], ['duel.ticket', 380, 0, 0, 0], ['admin', 160, 0, 0, 0], ['options', 140, 0, 0, 0], ['root', 40, 0, 0, 0]].map(function (r) { return { route: r[0], ok: r[1] * k, '4xx': r[2] * k, '429': r[3] * k, '5xx': r[4] * k, all: (r[1] + r[2] + r[3] + r[4]) * k }; }); };
+    return {
+      ok: true, demo: true, now: now, counters: true,
+      online: { known: { duel: true, live: true }, duel: { queue: 3, rooms: 14, players: 28, byKind: { quick: 11, friend: 3 }, byVersion: { '0.9.2': { queue: 3, rooms: 13 }, '0.9.1': { queue: 0, rooms: 1 } } },
+        live: { lobbies: 1, waiting: 17, rooms: 2, people: 41, watching: 9, bots: 96, byVersion: { '0.9.2': { waiting: 17, people: 38 }, '0.9.1': { waiting: 0, people: 3 } } } },
+      players: { today: 1284, week: 6420, month: 18950 },
+      matchmaking: { d1: mm(1), d7: mm(7), d30: mm(29), waitEdges: [2, 5, 10, 20, 30, 45, 60, 90, 120, 180, 300, 600] },
+      outcomes: { d1: oc(1), d7: oc(7), d30: oc(29) },
+      ranked: { duel: { verified: 9120, rejected: 41, open: 12, pending: 6, expired: 230 }, live: { verified: 1610, rejected: 9, pending: 3 }, verifierWaiting: 9, verifierOldest: now - 40 * 60e3 },
+      games: { modes: [['journey', 2210, 14100, 52300], ['blackout', 1630, 10200, 38800], ['online', 820, 5900, 21400], ['live', 610, 4300, 15200], ['duel', 540, 3800, 14100], ['onesong', 310, 2200, 8600], ['sprintday', 260, 1700, 6100], ['endless', 120, 900, 3500], ['ladder', 80, 610, 2300], ['storm', 70, 540, 1900]].map(function (r) { return { mode: r[0], today: r[1], week: r[2], month: r[3] }; }),
+        platforms: [{ k: 'web', players: 3920 }, { k: 'ios', players: 1210 }, { k: 'android', players: 880 }, { k: 'windows', players: 290 }, { k: 'macos', players: 90 }, { k: 'linux', players: 30 }],
+        versions: [{ v: '0.9.2', players: 5810, games: 31200 }, { v: '0.9.1', players: 690, games: 2400 }, { v: '0.9.0', players: 120, games: 310 }, { v: '0.8.7', players: 14, games: 22 }] },
+      errors: [['script', 'Invalid access to property or key "seat" on a base object of type "Nil". (live_view.gd:<n>)', 312, 1840, '0.9.1', 'filed', 214], ['js', 'AudioContext was not allowed to start. It must be resumed after a user gesture.', 188, 260, '0.8.7', 'filed', 198],
+        ['engine', 'Condition "!is_inside_tree()" is true. Returning: Transform3D()', 96, 2210, '0.9.0', 'filed', 207], ['shader', 'Shader compilation failed: bloom_stem.gdshader line <n>', 41, 41, '0.9.2', 'new', null], ['crash', 'Out of memory while decoding a song (web, Safari iPhone)', 17, 17, '0.9.2', 'filed', 221]]
+        .map(function (e, i) { return { kind: e[0], message: e[1], reports: e[2], count: e[3], firstVersion: e[4], lastAt: now - (i + 1) * 47 * 60e3, status: e[5], issue: e[6] }; }),
+      health: { d1: routes(1), d7: routes(7), hours: Array.from({ length: 24 }, function (_, i) { return { h: h - 23 + i, n: Math.round(1500 + 1100 * Math.sin((i - 4) / 24 * Math.PI * 2) + (i * 37 % 160)), err: i === 17 ? 1 : 0 }; }) },
+      synthetic: { last: {
+          quick: { at: now - 3 * 3600e3, ok: true, seconds: 92, checks: [['endpoints answer (duel, live) and the marker is accepted', 140, '61 ms'], ['duel friend: code, join, a set to an agreed final, a rematch, a leave', 26100, 'rtt 48 ms, DO pong 41 ms'], ['duel quick match: two queue, are paired with each other, play a set', 12400, 'match found in 1620 ms'], ['duel desync: a deliberately wrong state hash stops the set as no contest', 1300], ['duel forfeit: a player gone past the 10 s grace loses; the one there is told', 12200], ['ranked: tickets, the room records the set (a leave: verified at once), never rated', 3600], ['live: 10 synthetic people and Wildflowers play a room to its end', 61000, 'filled+counted 25 s, match 34 s']].map(function (c) { return { name: c[0], ok: true, ms: c[1], note: c[2] }; }) },
+          full: { at: now - 11 * 3600e3, ok: false, seconds: 1460, checks: [{ name: 'territories: 1v1 under eight territories latency, jitter and loss', ok: false, ms: 190000, note: 'a set did not end: india/india' }, { name: 'game clients: a best-of-3 friend set and a rematch', ok: true, ms: 402000 }] } },
+        runs: [['quick', 3, 1, 92], ['full', 11, 0, 1460], ['quick', 27, 1, 95], ['full', 35, 1, 1390]].map(function (r) { return { kind: r[0], at: now - r[1] * 3600e3, ok: !!r[2], seconds: r[3] }; }),
+        rankedSets: { verified: { n: 12 }, pending: { n: 2 } }, counters: { d1: { 'duel.start.friend': 14, 'duel.start.quick': 2, 'live.end': 2, 'duel.end.desync': 1 }, d7: {} } },
+    };
+  }
+
+  if (DEMO) { $('demoTag').classList.remove('hide'); $('forget').classList.add('hide'); }
+  load(false); tick();
+})();
+</script>
+</body>
+</html>
